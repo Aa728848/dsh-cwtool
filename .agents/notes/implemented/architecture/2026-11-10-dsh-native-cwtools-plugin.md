@@ -19,6 +19,10 @@ DSH 需要直接使用 CWTools 的 Paradox 语义能力，但现有独立 Node �
 - `dsh.bundle` 与 `dsh.client` 同包发布。设置通过 `settings.section` 和 `configForms` 进入同一 Host 配置；`FlatSectionScope` 负责嵌套配置的点号路径适配，一次保存一次 revision-fenced `mutate`，组开关不改写单工具值。Client 运行时只导出 `apply` 和 `inject`。
 - 构建使用独立 tsdown/tsc，Host 输出 ESM，Client 输出 `window.__ModuleLoader__.load` 包装和 CSS Modules。发布包包含 `lib/index.js`、`lib/client.js`、类型、patch、双语元数据和原创图标。
 
+- 设置分区依赖宿主 settings 投影：只有 Config 中位于 \`.volatile()\` 节点下的字段才会生成命名空间与表单；没有 volatile 字段的条目被 \`volatileForm()\` 过滤，浏览器端 \`whileServed(['cwtools'])\` 因此永不触发。本包六个可编辑区块（enabled/readGroups/readTools/writeTools/backend/output）整块声明为 volatile，\`snapshotConfig()\` 统一 \`.get()\` 成普通值供运行时消费，\`apply\` 监听 \`loader/volatile-update\` 重建运行时与工具注册，保存后无需重启实例。类型侧只 type-only 引入 \`@deepseek-ai/cordis-plugin-loader\`（devDependency）以获取该事件声明。
+
+- 设置页按信息类型拆成四个页签（项目 / 后端 / 只读工具 / 写入与输出），用共享 \`SegmentedTabs\` 提供等宽页签与键盘切换；总开关固定在页签上方，因为它门禁所有其它控件。字体层级对齐既有产品页：标题 16/500、分区标题 13/600（去掉全大写微型标题）、行标签 13、说明 12 三级色；每一行只有一个控件，并且所有行都是同一种卡片：同样的描边、填充、圆角和 10px 间距；字段卡包装共享 `SettingsValueField` 并清掉它自带的相邻分隔线（`field + field` 的 border-top），避免同页出现两种分隔方式。共享 \`SettingsForm\` 的根节点不带间距，页面自建 14px 块间距包住总开关、页签与面板，避免控件彼此贴住。37 个只读工具改为分组卡片内的多列网格加组头计数徽标。诊断降噪在「只读工具」页内自成一卡：`diagnostics.ignoreCodes` / `ignoreFiles` 以逗号分隔文本编辑并写成字符串数组（`listField` 适配），`diagnostics.localisationFilter` 用共享 `SegmentedControl` 取 `off` / `problems` / `all`（`localisationFilterField` 只接受这三个值），三者随 `snapshotConfig()` 一路透传到 LSP 的 `errors.ignore` / `errors.ignorefiles` / `errors.localisationFilter`；原版错误仍固定为 `errors.vanilla = false`。
+
 ## Alternatives considered
 
 - 使用 DSH MCP 客户端：违反不采用 MCP 的产品约束，并保留不必要的协议层。
@@ -37,3 +41,5 @@ DSH 需要直接使用 CWTools 的 Paradox 语义能力，但现有独立 Node �
 - 全量 VS Code 单测仍只有既有的 shader_files=50 vs 49 失败，原因是用户已有的 rules 子模块改动，本变更未修改该数据或测试。
 - 用户不允许启动新 DSH 实例，因此真实 profile 中的 Client 激活、配置保存以及精确视口 UI After 尚未完成；当前只有安装前基线和组件测试，不能声称完整 UI 验收通过。
 - 旧后端缺少能力握手时必须升级；本包不自带后端。发布顺序为 cwtools-shared → cwtools-node → dsh-cwtools。Git 交付不等同于 npm 发布，真实 profile UI 验收仍须单独完成。
+- 修复后 \`tests/host\` 24 项全部通过，其中新增回归测试要求 Config 的每个叶子字段都位于 volatile 节点下（镜像宿主 \`isVolatilePath\`）。\`tests/client\` 在本机无法装载：\`@deepseek-ai/dsh-client-ui-primitives\` 的 \`lib/index.js\` 引用未随包声明的 \`clsx\` 等运行时依赖，报错发生在 import 阶段、未进入本包代码，属既有环境缺口而非本次改动引入；真实 profile 的 Client 激活与保存仍需重启宿主后单独验收。
+- 客户端测试环境此前不可运行：\`@deepseek-ai/dsh-client-ui-primitives\` 与 \`dsh-client-store\` 把运行时依赖只写在 devDependencies，消费方需自备。补入所需运行时依赖（clsx、diff、anser、katex、micromark/mdast 系列、shiki、zustand、immer、simple-icons 等）并在 \`vitest.config.ts\` 内联该 UI 包以加载其 CSS Modules 后，9 个套件 61 项全部通过；\`section.spec.tsx\` 改为按页签切换后再断言。

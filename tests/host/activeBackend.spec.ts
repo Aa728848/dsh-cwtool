@@ -26,6 +26,7 @@ function config(preferActiveBackend: boolean): Config {
     readGroups: { project: true, localisation: true, semantic: true, navigation: true, diagnostics: true, shader: true },
     readTools: {},
     writeTools: { write_localisation: false },
+    diagnostics: { ignoreCodes: [], ignoreFiles: [], localisationFilter: 'off' as const },
     backend: {
       serverPath: '', gamePath: '', rulesPath: '', cachePath: '', game: '', forceStart: false,
       startupTimeoutMs: 30_000, requestTimeoutMs: 20_000, idleShutdownMs: 600_000,

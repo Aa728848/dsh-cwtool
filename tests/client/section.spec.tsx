@@ -53,31 +53,55 @@ function renderSection(options: {
   return { controller, form, face, t }
 }
 
+/** Select one settings tab, as a user switching categories does. */
+function openTab(name: string) {
+  fireEvent.click(screen.getByRole('tab', { name }))
+}
+
 describe('CwtoolsSection rendering', () => {
   it('renders the master switch, both backend groups, and the read/write/output blocks', () => {
     renderSection()
     expect(screen.getByRole('heading', { level: 2, name: en.title })).toBeTruthy()
     expect(screen.getByRole('switch', { name: en.enabled }).getAttribute('aria-checked')).toBe('true')
+    openTab(en.tabBackend)
     expect(screen.getByLabelText(en.serverPath)).toHaveProperty('value', '')
     expect(screen.getByLabelText(en.maxWorkspaceRuntimes)).toHaveProperty('value', '2')
+    openTab(en.tabOutput)
     expect(screen.getByLabelText(en.maxResultChars)).toHaveProperty('value', '16000')
     expect(screen.getByRole('switch', { name: en.writeLocalisation }).getAttribute('aria-checked')).toBe('false')
   })
 
   it('renders exactly the six groups and 37 shipped tools, and nothing this release does not ship', () => {
     renderSection()
+    openTab(en.tabRead)
     const groups = [en.groupProject, en.groupLocalisation, en.groupSemantic, en.groupNavigation, en.groupDiagnostics, en.groupShader]
     for (const group of groups) expect(screen.getAllByRole('switch', { name: group })).toHaveLength(1)
-    expect(screen.getAllByRole('switch')).toHaveLength(1 + 3 + 6 + 1 + CWTOOLS_READ_TOOL_NAMES.length)
+    expect(screen.getAllByRole('switch')).toHaveLength(1 + 6 + CWTOOLS_READ_TOOL_NAMES.length)
     for (const tool of CWTOOLS_READ_TOOL_NAMES) expect(screen.getByRole('switch', { name: tool })).toBeTruthy()
     expect(document.body.textContent).not.toContain('write_file')
     expect(document.body.textContent).not.toContain('ide_')
   })
 
+  it('renders the diagnostic filter controls and stages the workspace noise settings', async () => {
+    const { form } = renderSection()
+    openTab(en.tabRead)
+    fireEvent.change(screen.getByLabelText(en.ignoreCodes), { target: { value: 'CW274, CW288' } })
+    fireEvent.change(screen.getByLabelText(en.ignoreFiles), { target: { value: 'zz_legacy.txt' } })
+    fireEvent.click(screen.getByRole('tab', { name: en.localisationFilterAll }))
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: en.save })) })
+    expect(form.writes[0]?.ops).toEqual([
+      { op: 'set', path: ['diagnostics', 'ignoreCodes'], value: ['CW274', 'CW288'] },
+      { op: 'set', path: ['diagnostics', 'ignoreFiles'], value: ['zz_legacy.txt'] },
+      { op: 'set', path: ['diagnostics', 'localisationFilter'], value: 'all' },
+    ])
+  })
+
   it('renders the Chinese dictionary when the shell is in Chinese', () => {
     renderSection({ locale: 'zh' })
     expect(screen.getByRole('heading', { level: 2, name: zh.title })).toBeTruthy()
+    openTab(zh.tabBackend)
     expect(screen.getByLabelText(zh.serverPath)).toBeTruthy()
+    openTab(zh.tabRead)
     expect(screen.getByRole('switch', { name: zh.groupShader })).toBeTruthy()
   })
 })
@@ -85,7 +109,9 @@ describe('CwtoolsSection rendering', () => {
 describe('CwtoolsSection editing', () => {
   it('stages a path and a bound, and saves them in one write', async () => {
     const { form } = renderSection()
+    openTab(en.tabBackend)
     fireEvent.change(screen.getByLabelText(en.serverPath), { target: { value: 'C:/cwtools.exe' } })
+    openTab(en.tabOutput)
     fireEvent.change(screen.getByLabelText(en.maxResultChars), { target: { value: '24000' } })
     expect(screen.getByRole('button', { name: en.save })).toHaveProperty('disabled', false)
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: en.save })) })
@@ -98,6 +124,7 @@ describe('CwtoolsSection editing', () => {
 
   it('disables the tools of a group it turns off and keeps their values', () => {
     renderSection()
+    openTab(en.tabRead)
     const group = screen.getByRole('switch', { name: en.groupShader })
     fireEvent.click(group)
     expect(group.getAttribute('aria-checked')).toBe('false')
@@ -110,6 +137,7 @@ describe('CwtoolsSection editing', () => {
 
   it('refuses an out-of-range bound without staging a write', async () => {
     const { form } = renderSection()
+    openTab(en.tabBackend)
     fireEvent.change(screen.getByLabelText(en.maxWorkspaceRuntimes), { target: { value: '99' } })
     const input = screen.getByLabelText(en.maxWorkspaceRuntimes)
     expect(input.getAttribute('aria-invalid')).toBe('true')

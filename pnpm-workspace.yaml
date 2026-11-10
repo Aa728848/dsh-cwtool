@@ -1,2 +1,6 @@
 packages:
   - .
+minimumReleaseAgeExclude:
+  - cwtools-node@0.1.0
+  - cwtools-node@0.2.0
+  - cwtools-shared@0.3.0

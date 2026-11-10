@@ -38,7 +38,7 @@ import {
 export const CWTOOLS_SETTINGS_NAMESPACE = 'cwtools'
 
 /** Configuration block a leaf belongs to. */
-type CwtoolsBlock = 'enabled' | 'backend' | 'readGroups' | 'readTools' | 'writeTools' | 'output'
+type CwtoolsBlock = 'enabled' | 'backend' | 'diagnostics' | 'readGroups' | 'readTools' | 'writeTools' | 'output'
 
 /** One leaf field of the section, addressed inside the Host document. */
 export interface CwtoolsFieldRef {
@@ -129,10 +129,21 @@ const topLevel = (block: CwtoolsBlock): readonly CwtoolsFieldRef[] =>
   [...TEXT_FIELDS, ...DEFAULT_OFF_FIELDS, ...NUMBER_FIELDS, ...DEFAULT_ON_FIELDS]
     .filter(ref => ref.block === block)
 
+/** Diagnostic noise controls: two lists and the localisation filter mode. */
+const DIAGNOSTIC_LIST_FIELDS: readonly CwtoolsFieldRef[] = [
+  { field: 'diagnostics.ignoreCodes', block: 'diagnostics' },
+  { field: 'diagnostics.ignoreFiles', block: 'diagnostics' },
+]
+
+/** The three values the Host accepts for the localisation diagnostic filter. */
+export const CWTOOLS_LOCALISATION_FILTERS = ['off', 'problems', 'all'] as const
+
 /** Every control on the page, in rendering order. */
 export const CWTOOLS_FIELDS: readonly CwtoolsFieldRef[] = [
   ...topLevel('enabled'),
   ...topLevel('backend'),
+  ...DIAGNOSTIC_LIST_FIELDS,
+  { field: 'diagnostics.localisationFilter', block: 'diagnostics' },
   ...topLevel('readGroups'),
   ...topLevel('readTools'),
   ...topLevel('writeTools'),
@@ -193,6 +204,31 @@ function boundedNumberField(ref: CwtoolsFieldRef & { min: number; max: number })
   }
 }
 
+/** A comma-separated list field: the Host document stores an array. */
+function listField(field: string): SettingsFieldSpec {
+  return {
+    field,
+    format: (value) => (Array.isArray(value) ? value.map(item => String(item)).join(', ') : ''),
+    parse: (text) => {
+      const items = text.split(/[,\n]/).map(item => item.trim()).filter(item => item.length > 0)
+      return items.length === 0 ? { kind: 'clear' } : { kind: 'set', value: items }
+    },
+  }
+}
+
+/** The localisation filter enum: only the three Host values are accepted. */
+function localisationFilterField(field: string): SettingsFieldSpec {
+  return {
+    field,
+    format: (value) => (typeof value === 'string' && (CWTOOLS_LOCALISATION_FILTERS as readonly string[]).includes(value)
+      ? value
+      : 'off'),
+    parse: (text) => ((CWTOOLS_LOCALISATION_FILTERS as readonly string[]).includes(text)
+      ? { kind: 'set', value: text }
+      : undefined),
+  }
+}
+
 /** The conversion spec of every control on the page. */
 const SPECS: readonly SettingsFieldSpec[] = [
   ...topLevel('enabled').map(ref => switchField(ref.field, 'true')),
@@ -200,6 +236,8 @@ const SPECS: readonly SettingsFieldSpec[] = [
   ...TEXT_FIELDS.map(ref => settingsTextField(ref.field)),
   ...DEFAULT_OFF_FIELDS.filter(ref => ref.block === 'backend').map(ref => switchField(ref.field, 'false')),
   ...NUMBER_FIELDS.filter(ref => ref.block === 'backend').map(boundedNumberField),
+  ...DIAGNOSTIC_LIST_FIELDS.map(ref => listField(ref.field)),
+  localisationFilterField('diagnostics.localisationFilter'),
   ...topLevel('readGroups').map(ref => switchField(ref.field, 'true')),
   ...topLevel('readTools').map(ref => switchField(ref.field, 'true')),
   ...DEFAULT_OFF_FIELDS.filter(ref => ref.block === 'writeTools').map(ref => switchField(ref.field, 'false')),

@@ -24,6 +24,7 @@ export function defaultConfig(): CwtoolsConfig {
     readGroups: Object.fromEntries(CWTOOLS_READ_GROUP_ORDER.map(group => [group, true])) as CwtoolsConfig['readGroups'],
     readTools: {},
     writeTools: { write_localisation: false },
+    diagnostics: { ignoreCodes: [], ignoreFiles: [], localisationFilter: 'off' },
     backend: {
       serverPath: '',
       gamePath: '',

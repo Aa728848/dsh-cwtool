@@ -24,6 +24,7 @@ function config(overrides: Partial<Config> = {}): Config {
     readGroups: { project: true, localisation: true, semantic: true, navigation: true, diagnostics: true, shader: true },
     readTools: {},
     writeTools: { write_localisation: false },
+    diagnostics: { ignoreCodes: [], ignoreFiles: [], localisationFilter: 'off' as const },
     backend: {
       serverPath: '', gamePath: '', rulesPath: '', cachePath: '', game: '', forceStart: false,
       startupTimeoutMs: 30_000, requestTimeoutMs: 20_000, idleShutdownMs: 600_000,
@@ -81,6 +82,26 @@ beforeEach(() => {
     await expect(first).resolves.toMatchObject({ source: 'cwtools-dsh' })
     await expect(second).resolves.toBeDefined()
     expect(maxActive).toBe(1)
+    pool.dispose()
+  })
+
+  it('applies the filter list configured for the workspace', async () => {
+    const pool = new CwtoolsRuntimePool(config())
+    await pool.execute('get_diagnostics', {}, '/mod', new AbortController().signal)
+    expect(mocks.createHost).toHaveBeenCalledWith(expect.objectContaining({ honorWorkspaceIgnoreList: true }))
+    pool.dispose()
+  })
+
+  it('forwards the configured diagnostic noise controls to the backend', async () => {
+    const pool = new CwtoolsRuntimePool(config({
+      diagnostics: { ignoreCodes: ['CW274'], ignoreFiles: ['zz_legacy.txt'], localisationFilter: 'all' },
+    }))
+    await pool.execute('get_diagnostics', {}, '/mod', new AbortController().signal)
+    expect(mocks.createHost).toHaveBeenCalledWith(expect.objectContaining({
+      errorIgnoreCodes: ['CW274'],
+      errorIgnoreFiles: ['zz_legacy.txt'],
+      localisationDiagnosticFilter: 'all',
+    }))
     pool.dispose()
   })
 

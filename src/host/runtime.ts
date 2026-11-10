@@ -177,21 +177,29 @@ export class CwtoolsRuntimePool {
       throw new CwtoolsToolError('runtime_disposed', 'The CWTools runtime has been disposed.')
     }
     const writes = isWriteLocalisationEnabled(this.config)
-    const host = createNodeHostServices({
+    // Apply the filter list configured for this workspace (.vscode/settings.json
+    // stellarisLanguageServices.ai.ignoredDiagnostics), exactly like the VS Code extension:
+    // it is project configuration, and suppressed diagnostics stay counted.
+    const hostOptions = {
       workspaceRoot: project.root,
       game: project.game === 'paradox' || project.game === 'cwt' ? undefined : project.game,
       serverPath: optional(this.config.backend.serverPath),
       gamePath: optional(this.config.backend.gamePath),
       cachePath: optional(this.config.backend.cachePath),
       rulesPath: optional(this.config.backend.rulesPath),
+      errorIgnoreCodes: this.config.diagnostics.ignoreCodes,
+      errorIgnoreFiles: this.config.diagnostics.ignoreFiles,
+      localisationDiagnosticFilter: this.config.diagnostics.localisationFilter,
       enableWrites: writes,
       allowedTools: writes ? ['write_localisation'] : [],
       forceStart: this.config.backend.forceStart,
       startupTimeoutMs: this.config.backend.startupTimeoutMs,
       requestTimeoutMs: this.config.backend.requestTimeoutMs,
       debug: this.config.backend.debug,
+      honorWorkspaceIgnoreList: true,
       ...(active === undefined ? {} : { lspHost: active.lspHost, readyAtMs: active.readyAtMs }),
-    })
+    }
+    const host = createNodeHostServices(hostOptions)
     const entry: RuntimeEntry = {
       root: project.root,
       host,

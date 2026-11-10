@@ -9,7 +9,8 @@
 /** Every key this section renders. */
 export type CwtoolsLocaleKey =
   | 'nav' | 'title' | 'intro'
-  | 'sectionBackend' | 'sectionReadAccess' | 'sectionWriteAccess' | 'sectionOutput'
+  | 'sectionProject' | 'sectionBackend' | 'sectionReadAccess' | 'sectionDiagnostics' | 'sectionWriteAccess' | 'sectionOutput'
+  | 'tabProject' | 'tabBackend' | 'tabRead' | 'tabOutput'
   | 'enabled' | 'enabledHint'
   | 'serverPath' | 'serverPathHint'
   | 'gamePath' | 'gamePathHint'
@@ -29,6 +30,9 @@ export type CwtoolsLocaleKey =
   | 'groupProject' | 'groupLocalisation' | 'groupSemantic'
   | 'groupNavigation' | 'groupDiagnostics' | 'groupShader'
   | 'groupDisabledNote' | 'readAccessIntro'
+  | 'ignoreCodes' | 'ignoreCodesHint' | 'ignoreFiles' | 'ignoreFilesHint'
+  | 'localisationFilter' | 'localisationFilterHint'
+  | 'localisationFilterOff' | 'localisationFilterProblems' | 'localisationFilterAll'
   | 'overridden' | 'reset' | 'invalidNumber'
   | 'readOnly' | 'unavailable' | 'save' | 'saving' | 'saveFailed'
   | 'failedTitle' | 'acceptedValue' | 'retryHint' | 'conflictNotice' | 'emptyValue'
@@ -39,8 +43,23 @@ export const en: Record<CwtoolsLocaleKey, string> = {
   nav: 'CWTools',
   title: 'CWTools',
   intro: 'Configure the CWTools language server and which semantic tools this bundle exposes. Every control on this page is saved together.',
-  sectionBackend: 'Backend and project',
+  sectionProject: 'Project and game',
+  sectionBackend: 'Backend and runtime',
+  tabProject: 'Project',
+  tabBackend: 'Backend',
+  tabRead: 'Read tools',
+  tabOutput: 'Write and output',
   sectionReadAccess: 'Read tools',
+  sectionDiagnostics: 'Diagnostic filter',
+  ignoreCodes: 'Ignored error codes',
+  ignoreCodesHint: 'Comma-separated codes or message fragments the backend never reports. Vanilla errors are already off.',
+  ignoreFiles: 'Ignored file names',
+  ignoreFilesHint: 'Comma-separated file names whose diagnostics are dropped, such as zz_legacy.txt.',
+  localisationFilter: 'Localisation diagnostics',
+  localisationFilterHint: 'Filter localisation diagnostics the way the VS Code extension does.',
+  localisationFilterOff: 'Off',
+  localisationFilterProblems: 'Problems',
+  localisationFilterAll: 'All',
   sectionWriteAccess: 'Write access',
   sectionOutput: 'Output',
   enabled: 'Enable CWTools tools',
@@ -48,11 +67,11 @@ export const en: Record<CwtoolsLocaleKey, string> = {
   serverPath: 'Server path',
   serverPathHint: 'Path to the CWTools language server executable. When empty, the backend is discovered automatically: an installed CWTools extension or a development build. This bundle does not ship one.',
   gamePath: 'Game path',
-  gamePathHint: 'Path to the Paradox game installation.',
+  gamePathHint: 'Path to the Paradox game installation. When empty, the install is discovered from the local Steam libraries (registry and libraryfolders.vdf).',
   rulesPath: 'Rules path',
-  rulesPathHint: 'Path to the CWTools rules directory. Empty uses the server default.',
+  rulesPathHint: 'Path to the CWTools rules directory. Empty tries the installed extension, then this workspace\'s rule checkout, then the server default.',
   cachePath: 'Cache path',
-  cachePathHint: 'Directory for the server cache. Empty uses the workspace default.',
+  cachePathHint: 'Directory for the server cache. Empty reuses the installed extension cache when present, otherwise the workspace default.',
   activeManifestPath: 'Active bridge manifest (optional)',
   activeManifestPathHint: 'Explicit bridge-manifest.json for active-first reuse. Empty auto-discovers the current workspace host.',
   preferActiveBackend: 'Prefer the active backend',
@@ -106,8 +125,23 @@ export const zh: Record<CwtoolsLocaleKey, string> = {
   nav: 'CWTools',
   title: 'CWTools',
   intro: '配置 CWTools 语言服务器，以及本组合包开放哪些语义工具。本页所有控件会一起保存。',
-  sectionBackend: '后端与项目',
+  sectionProject: '项目与游戏',
+  sectionBackend: '后端与运行',
+  tabProject: '项目',
+  tabBackend: '后端',
+  tabRead: '只读工具',
+  tabOutput: '写入与输出',
   sectionReadAccess: '只读工具',
+  sectionDiagnostics: '诊断过滤',
+  ignoreCodes: '忽略的错误码',
+  ignoreCodesHint: '逗号分隔的错误码或消息片段，后端不再报告。原版错误默认已关闭。',
+  ignoreFiles: '忽略的文件名',
+  ignoreFilesHint: '逗号分隔的文件名，其诊断会被丢弃，例如 zz_legacy.txt。',
+  localisationFilter: '本地化诊断',
+  localisationFilterHint: '按与 VS Code 扩展一致的方式过滤本地化诊断。',
+  localisationFilterOff: '不过滤',
+  localisationFilterProblems: '仅问题',
+  localisationFilterAll: '全部',
   sectionWriteAccess: '写入权限',
   sectionOutput: '输出',
   enabled: '启用 CWTools 工具',
@@ -115,11 +149,11 @@ export const zh: Record<CwtoolsLocaleKey, string> = {
   serverPath: '服务器路径',
   serverPathHint: 'CWTools 语言服务器可执行文件路径。留空时自动发现后端：已安装的 CWTools 扩展或开发构建。本组合包不自带后端。',
   gamePath: '游戏路径',
-  gamePathHint: 'Paradox 游戏安装目录。',
+  gamePathHint: 'Paradox 游戏安装目录。留空时自动从本机 Steam 库发现（注册表 + libraryfolders.vdf），无需手填。',
   rulesPath: '规则路径',
-  rulesPathHint: 'CWTools 规则目录。留空使用服务器默认值。',
+  rulesPathHint: 'CWTools 规则目录。留空时依次尝试已安装扩展的规则、当前工作区的规则检出，最后用服务器默认值。',
   cachePath: '缓存路径',
-  cachePathHint: '服务器缓存目录。留空使用工作区默认值。',
+  cachePathHint: '服务器缓存目录。留空时优先复用已安装扩展的缓存，否则用工作区默认值。',
   activeManifestPath: '活跃桥接清单（可选）',
   activeManifestPathHint: '指定活跃优先复用的 bridge-manifest.json。留空时自动发现当前工作区宿主。',
   preferActiveBackend: '优先复用活跃后端',

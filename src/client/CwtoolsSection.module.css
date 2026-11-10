@@ -1,28 +1,50 @@
-/* CWTools settings section: rows over the shared settings surface. Tokens only. */
+/* CWTools settings section: tabs over the shared settings surface. Tokens only. */
 
 .section {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   max-width: 720px;
   color: var(--dsw-alias-label-primary);
 }
 
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .title {
   margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  line-height: 26px;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
 }
 
 .intro {
   margin: 0;
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 20px;
   color: var(--dsw-alias-label-tertiary);
 }
 
-.block {
+/* The shared form frame adds no gap between its children, so this page spaces its own blocks. */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.master {
+  display: flex;
+  flex-direction: column;
+}
+
+.tabs {
+  align-self: stretch;
+}
+
+.panel {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -30,17 +52,22 @@
 
 .blockHead {
   margin: 0;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  color: var(--dsw-alias-label-tertiary);
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .row {
   display: flex;
   align-items: flex-start;
-  gap: 16px;
+  gap: 12px;
   padding: 10px 12px;
   border: 0.5px solid var(--dsw-alias-settings-card-stroke);
   border-radius: var(--dsw-radius-lg);
@@ -52,18 +79,18 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .rowLabel {
-  font-size: 14px;
-  line-height: 22px;
+  font-size: 13px;
+  line-height: 20px;
   overflow-wrap: anywhere;
 }
 
 .rowHint {
   font-size: 12px;
-  line-height: 1.55;
+  line-height: 18px;
   color: var(--dsw-alias-label-tertiary);
   overflow-wrap: anywhere;
 }
@@ -73,6 +100,13 @@
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.rowState {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+  min-width: 24px;
 }
 
 .reset {
@@ -103,51 +137,70 @@
   outline-offset: 1px;
 }
 
-.fields {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 12px;
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.card {
+  padding: 10px 12px;
+  border: 0.5px solid var(--dsw-alias-settings-card-stroke);
+  border-radius: var(--dsw-radius-lg);
+  background: var(--dsw-alias-settings-card-fill);
+}
+
+/* The shared field brings its own padding and the frame's divider; the card owns both here. */
+.card > * {
+  padding: 0;
+  border-top: 0;
 }
 
 .groups {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
   padding: 10px 12px 12px;
-  border: 0.5px solid var(--dsw-alias-border-l2);
+  border: 0.5px solid var(--dsw-alias-settings-card-stroke);
   border-radius: var(--dsw-radius-lg);
+  background: var(--dsw-alias-settings-card-fill);
 }
 
 .groupHead {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
+  min-height: 24px;
 }
 
 .groupTitle {
   margin: 0;
-  font-size: 14px;
+  flex: 1;
+  font-size: 13px;
   font-weight: 600;
-  line-height: 22px;
+  line-height: 20px;
 }
 
 .groupCount {
   font-family: var(--dsw-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
   font-size: 11px;
+  line-height: 16px;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
   color: var(--dsw-alias-label-tertiary);
 }
 
 .tools {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 6px 14px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -163,19 +216,19 @@
 .toolName {
   font-family: var(--dsw-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
   font-size: 12px;
-  line-height: 20px;
+  line-height: 18px;
   color: var(--dsw-alias-label-secondary);
   overflow-wrap: anywhere;
 }
 
-.toolOff .toolName {
+.groupOff .toolName {
   color: var(--dsw-alias-label-tertiary);
 }
 
 .note {
   margin: 0;
   font-size: 12px;
-  line-height: 1.6;
+  line-height: 18px;
   color: var(--dsw-alias-label-tertiary);
 }
 
@@ -202,7 +255,7 @@
   gap: 4px 16px;
   margin: 0;
   font-size: 12px;
-  line-height: 1.6;
+  line-height: 18px;
   color: var(--dsw-alias-label-secondary);
 }
 
@@ -217,7 +270,7 @@
 }
 
 @media (max-width: 560px) {
-  .fields {
+  .tools {
     grid-template-columns: minmax(0, 1fr);
   }
 }

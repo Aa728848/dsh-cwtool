@@ -20,7 +20,9 @@ describe('CwtoolsSettingsController defaults', () => {
   it('renders every shipped read tool and both write states from the accepted section', () => {
     const { state } = bench()
     const current = state()
-    expect(Object.keys(current.fields)).toHaveLength(1 + 5 + 2 + 4 + 6 + CWTOOLS_READ_TOOL_NAMES.length + 1 + 1 + 2)
+    // master switch + backend text/number/switch fields + diagnostic lists/filter
+    // + read groups + read tools + write + output
+    expect(Object.keys(current.fields)).toHaveLength(1 + 5 + 2 + 4 + 3 + 6 + CWTOOLS_READ_TOOL_NAMES.length + 1 + 1 + 2)
     for (const tool of CWTOOLS_READ_TOOL_NAMES) expect(current.tools[tool]).toBe(true)
     expect(current.fields['writeTools.write_localisation']?.text).toBe('false')
     expect(current.fields['backend.serverPath']?.text).toBe('')
