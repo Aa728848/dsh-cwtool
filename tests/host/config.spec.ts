@@ -9,6 +9,8 @@ import { Config } from '../../src/config.ts'
     expect(config.writeTools.write_localisation).toBe(false)
     expect(config.backend.maxWorkspaceRuntimes).toBe(2)
     expect(config.backend.forceStart).toBe(false)
+    expect(config.backend.preferActiveBackend).toBe(true)
+    expect(config.backend.activeManifestPath).toBe('')
     expect(config.output.maxResultChars).toBe(16_000)
   })
 

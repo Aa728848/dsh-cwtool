@@ -89,6 +89,7 @@ const TEXT_FIELDS: readonly CwtoolsFieldRef[] = [
   { field: 'backend.gamePath', block: 'backend' },
   { field: 'backend.rulesPath', block: 'backend' },
   { field: 'backend.cachePath', block: 'backend' },
+  { field: 'backend.activeManifestPath', block: 'backend' },
   { field: 'backend.game', block: 'backend' },
 ]
 
@@ -118,6 +119,7 @@ const DEFAULT_OFF_FIELDS: readonly CwtoolsFieldRef[] = [
 /** Switches whose absent value means on: the master switch and every read grant. */
 const DEFAULT_ON_FIELDS: readonly CwtoolsFieldRef[] = [
   { field: 'enabled', block: 'enabled' },
+  { field: 'backend.preferActiveBackend', block: 'backend' },
   ...CWTOOLS_READ_GROUP_ORDER.map((group): CwtoolsFieldRef => ({ field: `readGroups.${group}`, block: 'readGroups' })),
   ...CWTOOLS_READ_TOOL_NAMES.map((tool): CwtoolsFieldRef => ({ field: `readTools.${tool}`, block: 'readTools' })),
 ]
@@ -194,6 +196,7 @@ function boundedNumberField(ref: CwtoolsFieldRef & { min: number; max: number })
 /** The conversion spec of every control on the page. */
 const SPECS: readonly SettingsFieldSpec[] = [
   ...topLevel('enabled').map(ref => switchField(ref.field, 'true')),
+  ...DEFAULT_ON_FIELDS.filter(ref => ref.block === 'backend').map(ref => switchField(ref.field, 'true')),
   ...TEXT_FIELDS.map(ref => settingsTextField(ref.field)),
   ...DEFAULT_OFF_FIELDS.filter(ref => ref.block === 'backend').map(ref => switchField(ref.field, 'false')),
   ...NUMBER_FIELDS.filter(ref => ref.block === 'backend').map(boundedNumberField),

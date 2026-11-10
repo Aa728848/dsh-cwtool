@@ -30,6 +30,8 @@ export const Config: z<CwtoolsConfigInput, Config> = z.object({
     requestTimeoutMs: timer.default(20_000),
     idleShutdownMs: timer.default(600_000),
     maxWorkspaceRuntimes: z.number().step(1).min(1).max(8).default(2),
+    preferActiveBackend: z.boolean().default(true),
+    activeManifestPath: z.string().default(''),
     debug: z.boolean().default(false),
   }).default({}),
   output: z.object({

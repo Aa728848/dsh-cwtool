@@ -7,7 +7,7 @@
 
 ### Host and upstream ownership
 
-`dsh-cwtools` depends on `cwtools-shared` for generated schemas, tool metadata, dispatch, readiness/cache annotations and targeting weights, and on `cwtools-node` for project detection, Node host services and the LSP process. It has no MCP SDK dependency and no VS Code bridge client.
+`dsh-cwtools` depends on `cwtools-shared` for generated schemas, tool metadata, dispatch, readiness/cache annotations and targeting weights, and on `cwtools-node` for project detection, Node host services, the standalone LSP process and the native active-host HTTP client. It has no MCP SDK dependency and never calls the extension's MCP `/rpc` endpoint.
 
 `src/index.ts` owns one Cordis effect. It registers the CWTools system-prompt section, creates one `CwtoolsRuntimePool`, and disposes registrations and all runtimes together.
 
@@ -21,7 +21,11 @@ The pool creates a `cwtools-node` host per resolved mod root, with single-flight
 
 ### Backend lifecycle
 
-The first LSP-dependent call starts the external backend with `startupTimeoutMs`. Immediately after `initialize`, the Node host invokes `cwtools.ai.getHostCapabilities` before `initialized` or `workspace/didChangeConfiguration`. It validates protocol version, assembly-independent release-manifest version and the 29 commands required by the shared dispatcher. An incompatible backend is disposed and returns `backend_incompatible`.
+Before creating a standalone process, the pool resolves a healthy active host for the exact mod root when `preferActiveBackend` is true (the default). An empty `activeManifestPath` uses standard manifest discovery. Missing/malformed manifests, stale pids, workspace mismatches, inactive hosts, and connection failures or timeouts are unavailable and permit standalone fallback. An unsupported native protocol or failed capability handshake returns `backend_incompatible` and never starts a competing process; cancellation remains cancellation.
+
+An available `NativeBridgeLspHost` is injected into the same Node host services, so filesystem, indexing, rules, diagnostics, readiness, write policy and revalidation stay shared while no child process is created. Native traffic uses only bearer-authenticated `/cwtools/healthz` and `/cwtools/rpc`, not MCP methods or the MCP `/rpc` endpoint. Existing runtime entries do not hot-migrate; disabling `preferActiveBackend` skips discovery.
+
+A standalone backend starts on the first LSP-dependent call with `startupTimeoutMs`. Immediately after `initialize`, the Node host invokes `cwtools.ai.getHostCapabilities` before `initialized` or `workspace/didChangeConfiguration`. It validates protocol version, assembly-independent release-manifest version and the 29 commands required by the shared dispatcher. An incompatible standalone backend is disposed and returns `backend_incompatible`.
 
 `requestTimeoutMs` bounds subsequent requests. AbortSignal is linked to a vscode-jsonrpc `CancellationTokenSource`, so abort/deadline sends a real `$/cancelRequest`. Startup owns partial process cleanup even without an explicit caller dispose.
 
@@ -42,7 +46,7 @@ The runtime Client export surface contains only `apply` and `inject`. Components
 
 ### Host 与上游职责
 
-`dsh-cwtools` 依赖 `cwtools-shared` 提供生成 schema、工具元数据、分派、readiness/cache 标注和索敌权重，依赖 `cwtools-node` 提供项目识别、Node 宿主服务和 LSP 进程。它没有 MCP SDK 依赖，也没有 VS Code 桥接客户端。
+`dsh-cwtools` 依赖 `cwtools-shared` 提供生成 schema、工具元数据、分派、readiness/cache 标注和索敌权重，依赖 `cwtools-node` 提供项目识别、Node 宿主服务、独立 LSP 进程和原生活跃宿主 HTTP 客户端。它没有 MCP SDK 依赖，也绝不调用扩展的 MCP `/rpc` 端点。
 
 `src/index.ts` 拥有一个 Cordis effect，注册 CWTools 系统提示词区段，创建一个 `CwtoolsRuntimePool`，并统一释放注册项和所有运行时。
 
@@ -56,7 +60,11 @@ The runtime Client export surface contains only `apply` and `inject`. Components
 
 ### 后端生命周期
 
-首个依赖 LSP 的调用以 `startupTimeoutMs` 启动外置后端。Node 宿主在 `initialize` 后立即调用 `cwtools.ai.getHostCapabilities`，早于 `initialized` 和 `workspace/didChangeConfiguration`，校验协议版本、release 清单版本和共享分派需要的 29 条命令。不兼容后端会被释放并返回 `backend_incompatible`。
+`preferActiveBackend` 默认开启。创建独立进程前，运行时池先为精确的 mod root 发现健康活跃宿主；`activeManifestPath` 为空时使用标准清单发现。清单缺失或畸形、pid 失效、工作区不匹配、宿主未活跃、连接失败或超时属于不可用，允许独立回退。原生协议不支持或能力握手失败返回 `backend_incompatible`，绝不启动竞争实例；取消始终按取消传播。
+
+可用宿主以 `NativeBridgeLspHost` 注入同一套 Node Host Services，因此文件系统、索引、规则、诊断、readiness、写策略和复验仍然共用，但不创建子进程。原生流量只使用 bearer 认证的 `/cwtools/healthz` 与 `/cwtools/rpc`，不使用 MCP 方法或 MCP `/rpc`。已创建的运行时不热迁移；关闭 `preferActiveBackend` 会完全跳过发现。
+
+独立后端在首个依赖 LSP 的调用中以 `startupTimeoutMs` 启动。Node 宿主在 `initialize` 后立即调用 `cwtools.ai.getHostCapabilities`，早于 `initialized` 和 `workspace/didChangeConfiguration`，校验协议版本、release 清单版本和共享分派需要的 29 条命令。不兼容独立后端会被释放并返回 `backend_incompatible`。
 
 后续请求使用 `requestTimeoutMs`。AbortSignal 连接 vscode-jsonrpc 的 `CancellationTokenSource`，所以 abort/deadline 会发送真实的 `$/cancelRequest`。即使调用方没有显式 dispose，启动过程也负责清理部分创建的子进程。
 

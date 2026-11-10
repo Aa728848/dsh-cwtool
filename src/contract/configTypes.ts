@@ -11,6 +11,8 @@ export interface CwtoolsBackendConfig {
   requestTimeoutMs: number
   idleShutdownMs: number
   maxWorkspaceRuntimes: number
+  preferActiveBackend: boolean
+  activeManifestPath: string
   debug: boolean
 }
 

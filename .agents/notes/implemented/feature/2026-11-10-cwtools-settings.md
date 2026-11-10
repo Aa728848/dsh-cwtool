@@ -19,7 +19,7 @@ CWTools 的配置（后端路径、超时、运行时上限、六组只读工具
 
 **`/client` 入口只导出 cordis 加载所需的值。** 按 DSH 客户端导出纪律，`src/client/index.ts` 的运行时导出恰好是 `apply` 与 `inject` 两个；字典命名空间与分区 id 是模块内私有常量，控制器与组件仍由各自模块导出，供同包测试直接相对导入。共享类型（`CwtoolsSectionProps`、`CwtoolsSectionFace`、`CwtoolsSectionState`、`CwtoolsAcceptedValue`、`CwtoolsFieldRef`、`CwtoolsLocaleKey`）作为类型导出保留。新增值导出需要用户批准，而不是「测试要编译」。
 
-**空 `serverPath` 表示自动发现后端，不是回退到随包后端。** 本组合包不自带 CWTools 语言服务器可执行文件；字段留空时由已安装的 CWTools 扩展或开发构建提供后端，界面文案明确写出这一点。
+**空 `serverPath` 表示自动发现独立后端，不是回退到随包后端。** 本组合包不自带 CWTools 语言服务器可执行文件；字段留空时由已安装的 CWTools 扩展或开发构建提供独立后端。`preferActiveBackend` 默认开启，`activeManifestPath` 空值自动发现活跃宿主清单；界面同时说明健康复用、不可用回退和不兼容不双开。
 
 **嵌套配置通过一层拉平适配器接入共享表单模型。** `FlatSectionScope` 实现 `SettingsFormScope<FlatSection>`：把 Host 快照的 `value`/`base`/`user` 各展开一层，叶子用点号路径（`backend.serverPath`、`readTools.get_diagnostics`）寻址，于是 `SettingsFormModel` 的暂存、校验、覆盖标记、reset 语义原样复用。写入时 `toWireOp` 把单段路径按点号拆回嵌套路径，`mutate` 一次提交全部操作，并用草案开始时的 revision 作为围栏。
 
@@ -52,4 +52,4 @@ CWTools 的配置（后端路径、超时、运行时上限、六组只读工具
 - 页面注册跟随 `whileServed`：从未组合过 CWTools Host 的部署看不到任何痕迹，Host 停止服务时整页撤下。
 - 公开浏览器 API 只有 `apply`/`inject`：任何新增值导出都要单独审批，测试只能相对导入内部模块，不能为了编译而放宽入口。
 - 后端由外部提供：插件不打包语言服务器，空 `serverPath` 走自动发现；因此缺少后端时的失败诊断必须由 Host 侧给出，界面只负责如实描述该行为。
-- 本变更未覆盖集成构建与安装后的可视化验收：源码与组件测试自洽，但 `pnpm run build`、真实 `dsh web` 中的 Before/After 截图由集成方完成。
+- `pnpm run build`、60 项 DSH 测试和静态安装/dump 已通过；真实 profile 中的 Client 激活、保存和 Before/After 视觉验收仍未执行，不能用源码或组件测试替代。

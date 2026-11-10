@@ -27,7 +27,9 @@ function config(overrides: Partial<Config> = {}): Config {
     backend: {
       serverPath: '', gamePath: '', rulesPath: '', cachePath: '', game: '', forceStart: false,
       startupTimeoutMs: 30_000, requestTimeoutMs: 20_000, idleShutdownMs: 600_000,
-      maxWorkspaceRuntimes: 2, debug: false,
+      maxWorkspaceRuntimes: 2,
+      preferActiveBackend: false,
+      activeManifestPath: '', debug: false,
     },
     output: { maxResultChars: 16_000 },
     ...overrides,
@@ -64,17 +66,21 @@ beforeEach(() => {
   })
 
   it('serializes non-parallel calls per workspace and normalizes the source', async () => {
-    let release!: (value: unknown) => void
-    mocks.call.mockImplementation(() => new Promise(resolve => { release = resolve }))
+    let active = 0
+    let maxActive = 0
+    mocks.call.mockImplementation(async () => {
+      active++
+      maxActive = Math.max(maxActive, active)
+      await new Promise(resolve => setTimeout(resolve, 5))
+      active--
+      return { ok: true, status: 'ready', source: 'cwtools-mcp' }
+    })
     const pool = new CwtoolsRuntimePool(config())
     const first = pool.execute('explore_pdx_project', {}, '/mod', new AbortController().signal)
     const second = pool.execute('explore_pdx_project', {}, '/mod', new AbortController().signal)
-    await vi.waitFor(() => { expect(mocks.call).toHaveBeenCalledTimes(1) })
-    release({ ok: true, status: 'ready', source: 'cwtools-mcp' })
     await expect(first).resolves.toMatchObject({ source: 'cwtools-dsh' })
-    await vi.waitFor(() => { expect(mocks.call).toHaveBeenCalledTimes(2) })
-    release({ ok: true, status: 'ready', source: 'cwtools-mcp' })
     await expect(second).resolves.toBeDefined()
+    expect(maxActive).toBe(1)
     pool.dispose()
   })
 
@@ -85,6 +91,7 @@ beforeEach(() => {
     settings.backend.maxWorkspaceRuntimes = 1
     const pool = new CwtoolsRuntimePool(settings)
     const first = pool.execute('query_types', {}, '/mod', new AbortController().signal)
+    await vi.waitFor(() => { expect(mocks.call).toHaveBeenCalled() })
     mocks.detect.mockReturnValue({ supported: true, reason: 'other', matchedAt: '/other', kind: 'mod', gameId: 'stellaris' })
     await expect(pool.execute('query_types', {}, '/other', new AbortController().signal)).rejects.toMatchObject({ code: 'workspace_capacity' })
     release({ ok: true, status: 'ready', source: 'cwtools-mcp' })

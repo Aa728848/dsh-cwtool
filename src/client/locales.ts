@@ -15,6 +15,8 @@ export type CwtoolsLocaleKey =
   | 'gamePath' | 'gamePathHint'
   | 'rulesPath' | 'rulesPathHint'
   | 'cachePath' | 'cachePathHint'
+  | 'activeManifestPath' | 'activeManifestPathHint'
+  | 'preferActiveBackend' | 'preferActiveBackendHint'
   | 'game' | 'gameHint'
   | 'forceStart' | 'forceStartHint'
   | 'debug' | 'debugHint'
@@ -51,6 +53,10 @@ export const en: Record<CwtoolsLocaleKey, string> = {
   rulesPathHint: 'Path to the CWTools rules directory. Empty uses the server default.',
   cachePath: 'Cache path',
   cachePathHint: 'Directory for the server cache. Empty uses the workspace default.',
+  activeManifestPath: 'Active bridge manifest (optional)',
+  activeManifestPathHint: 'Explicit bridge-manifest.json for active-first reuse. Empty auto-discovers the current workspace host.',
+  preferActiveBackend: 'Prefer the active backend',
+  preferActiveBackendHint: 'Reuse a healthy active host for this workspace. If none is reusable, start a standalone backend; an incompatible active host never causes a second one.',
   game: 'Game',
   gameHint: 'Paradox game identifier such as stellaris or ck3. Empty detects it from the project.',
   forceStart: 'Force start',
@@ -114,6 +120,10 @@ export const zh: Record<CwtoolsLocaleKey, string> = {
   rulesPathHint: 'CWTools 规则目录。留空使用服务器默认值。',
   cachePath: '缓存路径',
   cachePathHint: '服务器缓存目录。留空使用工作区默认值。',
+  activeManifestPath: '活跃桥接清单（可选）',
+  activeManifestPathHint: '指定活跃优先复用的 bridge-manifest.json。留空时自动发现当前工作区宿主。',
+  preferActiveBackend: '优先复用活跃后端',
+  preferActiveBackendHint: '复用当前工作区健康的活跃宿主，没有可复用宿主时才启动独立后端；活跃宿主不兼容时不会再启动第二个实例。',
   game: '游戏',
   gameHint: 'Paradox 游戏标识，例如 stellaris 或 ck3。留空时从项目自动识别。',
   forceStart: '强制启动',

@@ -14,7 +14,9 @@ function config(): Config {
     backend: {
       serverPath: '', gamePath: '', rulesPath: '', cachePath: '', game: '', forceStart: false,
       startupTimeoutMs: 30_000, requestTimeoutMs: 20_000, idleShutdownMs: 600_000,
-      maxWorkspaceRuntimes: 2, debug: false,
+      maxWorkspaceRuntimes: 2,
+      preferActiveBackend: false,
+      activeManifestPath: '', debug: false,
     },
     output: { maxResultChars: 16_000 },
   }

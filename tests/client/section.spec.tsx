@@ -68,7 +68,7 @@ describe('CwtoolsSection rendering', () => {
     renderSection()
     const groups = [en.groupProject, en.groupLocalisation, en.groupSemantic, en.groupNavigation, en.groupDiagnostics, en.groupShader]
     for (const group of groups) expect(screen.getAllByRole('switch', { name: group })).toHaveLength(1)
-    expect(screen.getAllByRole('switch')).toHaveLength(1 + 2 + 6 + 1 + CWTOOLS_READ_TOOL_NAMES.length)
+    expect(screen.getAllByRole('switch')).toHaveLength(1 + 3 + 6 + 1 + CWTOOLS_READ_TOOL_NAMES.length)
     for (const tool of CWTOOLS_READ_TOOL_NAMES) expect(screen.getByRole('switch', { name: tool })).toBeTruthy()
     expect(document.body.textContent).not.toContain('write_file')
     expect(document.body.textContent).not.toContain('ide_')

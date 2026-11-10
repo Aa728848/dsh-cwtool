@@ -22,6 +22,8 @@ export interface CwtoolsNodeHostOptions {
   forceStart: boolean
   startupTimeoutMs?: number
   requestTimeoutMs?: number
+  lspHost?: HostServices['lsp']
+  readyAtMs?: number
   debug?: boolean
 }
 

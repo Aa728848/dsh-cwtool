@@ -43,7 +43,9 @@ const FIELD_COPY: Record<string, { label: CwtoolsLocaleKey; hint: CwtoolsLocaleK
   'backend.gamePath': { label: 'gamePath', hint: 'gamePathHint' },
   'backend.rulesPath': { label: 'rulesPath', hint: 'rulesPathHint' },
   'backend.cachePath': { label: 'cachePath', hint: 'cachePathHint' },
+  'backend.activeManifestPath': { label: 'activeManifestPath', hint: 'activeManifestPathHint' },
   'backend.game': { label: 'game', hint: 'gameHint' },
+  'backend.preferActiveBackend': { label: 'preferActiveBackend', hint: 'preferActiveBackendHint' },
   'backend.forceStart': { label: 'forceStart', hint: 'forceStartHint' },
   'backend.debug': { label: 'debug', hint: 'debugHint' },
   'backend.startupTimeoutMs': { label: 'startupTimeoutMs', hint: 'startupTimeoutMsHint' },
@@ -60,6 +62,7 @@ const TEXT_ROW_FIELDS: readonly string[] = [
   'backend.gamePath',
   'backend.rulesPath',
   'backend.cachePath',
+  'backend.activeManifestPath',
   'backend.game',
 ]
 
@@ -72,7 +75,7 @@ const BACKEND_NUMBER_FIELDS: readonly string[] = [
 ]
 
 /** Switches of the backend block. */
-const BACKEND_SWITCH_FIELDS: readonly string[] = ['backend.forceStart', 'backend.debug']
+const BACKEND_SWITCH_FIELDS: readonly string[] = ['backend.preferActiveBackend', 'backend.forceStart', 'backend.debug']
 
 /** One switch row: its copy, the reset a stored override offers, and the control. */
 function SwitchRow({ id, checked, overridden, disabled, copy, t, onToggle, onReset }: {

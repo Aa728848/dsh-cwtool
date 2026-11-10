@@ -16,6 +16,7 @@ import {
 } from '../contract/toolCatalog.ts'
 import type { CwtoolsToolCallHandler } from './contracts.ts'
 import { abortError, awaitWithAbort, CwtoolsToolError, throwIfAborted } from './errors.ts'
+import { resolveActiveBackend } from './activeBackend.ts'
 
 interface RuntimeEntry {
   readonly root: string
@@ -44,6 +45,7 @@ function optional(value: string): string | undefined {
 
 export class CwtoolsRuntimePool {
   private readonly entries = new Map<string, RuntimeEntry>()
+  private readonly pendingEntries = new Map<string, Promise<RuntimeEntry>>()
   private disposed = false
 
   constructor(private readonly config: Config) {}
@@ -87,7 +89,10 @@ export class CwtoolsRuntimePool {
     if (this.disposed) throw new CwtoolsToolError('runtime_disposed', 'The CWTools runtime has been disposed.')
     const denied = this.exposureReason(name, workspaceRoot)
     if (denied !== undefined) throw new CwtoolsToolError('tool_not_available', denied)
-    const entry = this.entryFor(workspaceRoot)
+    const entry = await this.entryFor(workspaceRoot, signal)
+    if (this.disposed) {
+      throw new CwtoolsToolError('runtime_disposed', 'The CWTools runtime has been disposed.')
+    }
     const controller = new AbortController()
     const abort = () => { controller.abort(signal.reason) }
     if (signal.aborted) abort()
@@ -136,7 +141,7 @@ export class CwtoolsRuntimePool {
     }
   }
 
-  private entryFor(workspaceRoot: string): RuntimeEntry {
+  private async entryFor(workspaceRoot: string, signal: AbortSignal): Promise<RuntimeEntry> {
     if (this.disposed) throw new CwtoolsToolError('runtime_disposed', 'The CWTools runtime has been disposed.')
     const project = this.resolveProject(workspaceRoot)
     if (!project.supported) throw new CwtoolsToolError('project_not_supported', project.reason)
@@ -145,6 +150,31 @@ export class CwtoolsRuntimePool {
       existing.lastUsed = Date.now()
       this.clearIdle(existing)
       return existing
+    }
+    const pending = this.pendingEntries.get(project.root)
+    if (pending !== undefined) return await pending
+    const created = this.createEntry(project, signal)
+    this.pendingEntries.set(project.root, created)
+    try {
+      const entry = await created
+      if (this.disposed) {
+        this.entries.delete(project.root)
+        if (!entry.disposed) entry.host.dispose?.()
+        throw new CwtoolsToolError('runtime_disposed', 'The CWTools runtime was disposed while the workspace host was starting.')
+      }
+      return entry
+    } finally {
+      this.pendingEntries.delete(project.root)
+    }
+  }
+
+  private async createEntry(project: ProjectResolution, signal: AbortSignal): Promise<RuntimeEntry> {
+    const active = this.config.backend.preferActiveBackend
+      ? await resolveActiveBackend(this.config, project.root, signal)
+      : undefined
+    if (this.disposed) {
+      if (active && 'dispose' in active.lspHost && typeof active.lspHost.dispose === 'function') active.lspHost.dispose()
+      throw new CwtoolsToolError('runtime_disposed', 'The CWTools runtime has been disposed.')
     }
     const writes = isWriteLocalisationEnabled(this.config)
     const host = createNodeHostServices({
@@ -160,6 +190,7 @@ export class CwtoolsRuntimePool {
       startupTimeoutMs: this.config.backend.startupTimeoutMs,
       requestTimeoutMs: this.config.backend.requestTimeoutMs,
       debug: this.config.backend.debug,
+      ...(active === undefined ? {} : { lspHost: active.lspHost, readyAtMs: active.readyAtMs }),
     })
     const entry: RuntimeEntry = {
       root: project.root,
