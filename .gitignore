@@ -1,0 +1,9 @@
+node_modules/
+lib/
+dist/
+coverage/
+*.tgz
+*.log
+.env
+pnpm-lock.yaml
+artifacts/
