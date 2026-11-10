@@ -28,6 +28,8 @@ interface RuntimeEntry {
   lastUsed: number
   idleTimer?: NodeJS.Timeout
   disposed: boolean
+  /** True when the LSP transport is the injected active host, not a spawned server. */
+  readonly usedActiveBackend: boolean
 }
 
 interface ProjectResolution {
@@ -36,6 +38,12 @@ interface ProjectResolution {
   reason: string
   kind: string
   game: string
+}
+
+function isActiveBackendLost(result: SharedToolResult): boolean {
+  if (result.ok !== false || result.status !== 'unavailable') return false
+  const code = result.error?.code
+  return code === 'active_unavailable' || code === 'bridge_unavailable'
 }
 
 function optional(value: string): string | undefined {
@@ -90,6 +98,25 @@ export class CwtoolsRuntimePool {
     const denied = this.exposureReason(name, workspaceRoot)
     if (denied !== undefined) throw new CwtoolsToolError('tool_not_available', denied)
     const entry = await this.entryFor(workspaceRoot, signal)
+    const result = await this.invoke(entry, name, args, signal)
+    if (this.disposed || !entry.usedActiveBackend || !isActiveBackendLost(result)) return result
+    // The injected active host stopped answering. Drop the cached runtime and let
+    // the next entry re-run discovery: it can pick up a restarted host or fall
+    // back to a standalone language server, instead of failing every call until
+    // the idle-shutdown timer (10 minutes by default) finally clears it.
+    this.entries.delete(entry.root)
+    this.disposeEntry(entry)
+    const retried = await this.entryFor(workspaceRoot, signal)
+    if (retried === entry) return result
+    return await this.invoke(retried, name, args, signal)
+  }
+
+  private async invoke(
+    entry: RuntimeEntry,
+    name: string,
+    args: Record<string, unknown>,
+    signal: AbortSignal,
+  ): Promise<SharedToolResult> {
     if (this.disposed) {
       throw new CwtoolsToolError('runtime_disposed', 'The CWTools runtime has been disposed.')
     }
@@ -209,6 +236,7 @@ export class CwtoolsRuntimePool {
       active: 0,
       lastUsed: Date.now(),
       disposed: false,
+      usedActiveBackend: active !== undefined,
     }
     this.entries.set(project.root, entry)
     this.enforceCapacity(entry)

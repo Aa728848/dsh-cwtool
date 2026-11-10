@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   createActive: vi.fn(),
   createHost: vi.fn(),
   dispose: vi.fn(),
+  handler: vi.fn(),
 }))
 vi.mock('cwtools-node', () => ({
   discoverNativeBridge: mocks.discover,
@@ -15,7 +16,7 @@ vi.mock('cwtools-node', () => ({
 }))
 vi.mock('cwtools-shared', async (importOriginal) => {
   const actual = await importOriginal<typeof import('cwtools-shared')>()
-  return { ...actual, createToolCallHandler: () => vi.fn(async () => ({ ok: true, status: 'ready', source: 'test' })) }
+  return { ...actual, createToolCallHandler: () => mocks.handler }
 })
 
 import { CwtoolsRuntimePool } from '../../src/host/runtime.ts'
@@ -40,6 +41,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   mocks.createActive.mockReturnValue({ dispose: mocks.dispose })
   mocks.createHost.mockReturnValue({ dispose: mocks.dispose })
+  mocks.handler.mockResolvedValue({ ok: true, status: 'ready', source: 'test' })
   mocks.discover.mockResolvedValue({ kind: 'unavailable', reason: 'missing' })
 })
 
@@ -97,6 +99,41 @@ describe('active-first runtime', () => {
     const second = pool.execute('query_types', {}, '/mod', new AbortController().signal)
     release({ kind: 'unavailable', reason: 'missing' })
     await Promise.all([first, second])
+    expect(mocks.createHost).toHaveBeenCalledTimes(1)
+    pool.dispose()
+  })
+
+  it('rediscovers the active backend after it stops answering', async () => {
+    mocks.createActive.mockReturnValue({ dispose: mocks.dispose })
+    mocks.discover.mockResolvedValue({ kind: 'available', manifest: { token: 'secret' } })
+    mocks.handler
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 'unavailable',
+        source: 'cwtools-mcp',
+        error: { code: 'active_unavailable', message: 'fetch failed' },
+      })
+      .mockResolvedValueOnce({ ok: true, status: 'ready', source: 'cwtools-mcp' })
+    const pool = new CwtoolsRuntimePool(config(true))
+    const result = await pool.execute('query_types', {}, '/mod', new AbortController().signal)
+    expect(result).toMatchObject({ ok: true, status: 'ready' })
+    expect(mocks.discover).toHaveBeenCalledTimes(2)
+    expect(mocks.createHost).toHaveBeenCalledTimes(2)
+    expect(mocks.dispose).toHaveBeenCalled()
+    pool.dispose()
+  })
+
+  it('does not retry when the runtime was never an active backend', async () => {
+    mocks.discover.mockResolvedValue({ kind: 'unavailable', reason: 'missing' })
+    mocks.handler.mockResolvedValueOnce({
+      ok: false,
+      status: 'unavailable',
+      source: 'cwtools-mcp',
+      error: { code: 'lsp_unavailable', message: 'no server' },
+    })
+    const pool = new CwtoolsRuntimePool(config(true))
+    const result = await pool.execute('query_types', {}, '/mod', new AbortController().signal)
+    expect(result).toMatchObject({ ok: false })
     expect(mocks.createHost).toHaveBeenCalledTimes(1)
     pool.dispose()
   })

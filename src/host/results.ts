@@ -48,11 +48,12 @@ export function normalizeSuccessfulResult(result: SharedToolResult): SharedToolR
 }
 
 export function errorFromSharedResult(result: SharedToolResult): CwtoolsToolError {
-  return new CwtoolsToolError(
-    result.error?.code ?? result.status,
-    result.error?.message ?? 'CWTools tool call failed with status ' + result.status + '.',
-    result.nextSteps ?? [],
-  )
+  const code = result.error?.code ?? result.status
+  const message = result.error?.message ?? 'CWTools tool call failed with status ' + result.status + '.'
+  // DSH renders only the message, and "fetch failed" alone does not say that the
+  // backend went away; keep the stable code visible next to the text.
+  const detail = result.error?.code ? message + ' (' + result.error.code + ')' : message
+  return new CwtoolsToolError(code, detail, result.nextSteps ?? [])
 }
 
 export function renderCwtoolsResult(value: unknown, maxResultChars: number): string {

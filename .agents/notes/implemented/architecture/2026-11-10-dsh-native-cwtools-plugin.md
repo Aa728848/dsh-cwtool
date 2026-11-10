@@ -12,7 +12,7 @@ DSH 需要直接使用 CWTools 的 Paradox 语义能力，但现有独立 Node �
 
 - 首版目录在 `src/contract/toolCatalog.ts` 唯一持有：37 个只读工具和 `write_localisation`。CWT-only 只暴露支持的子集，索敌权重仅用于 Stellaris full-mod；另外五个 VS Code 依赖写入和两个 IDE 工具不注册。
 - `CwtoolsRuntimePool` 按 Session cwd 和解析后的 mod root 复用宿主，支持项目门禁、single-flight、LRU、idle、容量背压、按并发类别串行和统一释放。步骤级 `when` 不启动 LSP。
-- `preferActiveBackend` 默认开启，`activeManifestPath` 空值自动发现。发现校验 manifest 结构、原生 URL/token、正整数 pid、精确 workspace、健康状态与协议版本；缺失/畸形/失效/不匹配/未活跃/连接失败或超时回退独立后端，AbortSignal 原样传播。健康宿主注入 `NativeBridgeLspHost`，复用其余 Node Host Services而不创建进程。不兼容协议或能力握手返回 `backend_incompatible`，绝不双开。运行时已创建后不热迁移，偏好关闭时完全跳过发现。
+- `preferActiveBackend` 默认开启，`activeManifestPath` 空值自动发现。发现校验 manifest 结构、原生 URL/token、正整数 pid、精确 workspace、健康状态与协议版本；缺失/畸形/失效/不匹配/未活跃/连接失败或超时回退独立后端，AbortSignal 原样传播。健康宿主注入 `NativeBridgeLspHost`，复用其余 Node Host Services而不创建进程。不兼容协议或能力握手返回 `backend_incompatible`，绝不双开。运行时已创建后不热迁移，偏好关闭时完全跳过发现；唯一例外是活跃后端返回 `active_unavailable`/`bridge_unavailable`：此时池丢弃该 runtime、重新执行一次发现（可回退独立后端）并重试一次，避免坏连接一直续命到 `idleShutdownMs`。
 - 后端在 initialize 后、模型加载通知前执行能力握手，检查协议版本、release 清单版本和 29 条真实调用命令。AbortSignal 连接 JSON-RPC CancellationTokenSource，abort/deadline 发送 `$/cancelRequest`，启动失败/中止由宿主自行清理子进程。
 - `startupTimeoutMs` 与 `requestTimeoutMs` 分别控制启动和后续请求。加载中的空诊断表示 pending，不表示错误或权威空结果；响应保留 readiness/cache provenance。
 - 规范结果只包含无损 JSON，`ok:false` 转为带稳定错误码的 `CwtoolsToolError`，只有渲染文本被有界截断。
@@ -35,6 +35,7 @@ DSH 需要直接使用 CWTools 的 Paradox 语义能力，但现有独立 Node �
 
 ## Consequences
 
+- 后端掉线自愈的回归测试覆盖「重发现并重试一次」与「非活跃后端不重试」两项；错误消息保留稳定错误码（如 `active_unavailable`），因为 DSH 只渲染 message 文本。
 - Host 与 Client 的 60 个测试通过；上游 shared/node/mcp 的 177 个契约测试通过，其中原生发现覆盖健康复用、不兼容不双开、工作区不匹配/超时回退、畸形 manifest 和取消传播。真实 DSH 调用验证 query_types ready、索敌 W1/p 数值、诊断 pending、默认无写入、本地化 BOM 保留/创建和越界拒绝。
 - F# 的 19 项能力握手检查通过，VS Code 类型检查、MCP schema/detection 和 release 校验通过；VSIX 包含 65 个 cwtools-shared 文件且不含 src/。
 - 静态本地链接 `dsh plugin` 安装和 `--dump-config` 已确认 `# == dsh-cwtools` 与 `id: cwtools`，没有启动验收实例。tarball 已生成；直接安装 tarball 时，包管理器尝试从 registry 解析未发布的 `cwtools-node` 并以 404 失败，因此 tarball 安装不能记为通过，profile 保持原有链接。

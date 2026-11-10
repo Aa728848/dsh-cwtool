@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeSuccessfulResult, renderCwtoolsResult } from '../../src/host/results.ts'
+import { errorFromSharedResult, normalizeSuccessfulResult, renderCwtoolsResult } from '../../src/host/results.ts'
 
  describe('CWTools canonical results', () => {
   it('removes undefined object fields and sorts keys without changing arrays', () => {
@@ -22,6 +22,18 @@ import { normalizeSuccessfulResult, renderCwtoolsResult } from '../../src/host/r
   it('rejects non-JSON and malformed success values', () => {
     expect(() => normalizeSuccessfulResult({ ok: true, status: 'ready', source: 'test', data: Number.NaN })).toThrow(/non-finite/)
     expect(() => normalizeSuccessfulResult({ ok: true, status: 'unavailable', source: 'test' })).toThrow(/invalid success/)
+  })
+
+  it('keeps the stable error code visible in the surfaced message', () => {
+    const error = errorFromSharedResult({
+      ok: false,
+      status: 'unavailable',
+      source: 'test',
+      error: { code: 'active_unavailable', message: 'fetch failed' },
+    })
+    expect(error.code).toBe('active_unavailable')
+    expect(error.message).toContain('fetch failed')
+    expect(error.message).toContain('active_unavailable')
   })
 
   it('truncates only rendered text and includes an explicit marker', () => {
