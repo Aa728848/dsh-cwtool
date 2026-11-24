@@ -1,4 +1,4 @@
-import type { CwtoolsReadGroup, CwtoolsReadToolName, CwtoolsWriteToolName } from './toolCatalog.ts'
+import type { CwtoolsReadGroup } from './toolCatalog.ts'
 
 export interface CwtoolsBackendConfig {
   serverPath: string
@@ -29,11 +29,16 @@ export interface CwtoolsDiagnosticsConfig {
   localisationFilter: CwtoolsLocalisationFilter
 }
 
+/**
+ * Read grants. Tool names are open strings: the shared catalog, not this
+ * package, decides which tools exist, so a tool published upstream is granted
+ * by its group until someone stores `readTools[name] = false`.
+ */
 export interface CwtoolsConfig {
   enabled: boolean
   readGroups: Record<CwtoolsReadGroup, boolean>
-  readTools: Partial<Record<CwtoolsReadToolName, boolean>>
-  writeTools: Partial<Record<CwtoolsWriteToolName, boolean>>
+  readTools: Record<string, boolean>
+  writeTools: Record<string, boolean>
   backend: CwtoolsBackendConfig
   diagnostics: CwtoolsDiagnosticsConfig
   output: { maxResultChars: number }
@@ -43,8 +48,8 @@ export interface CwtoolsConfig {
 export interface CwtoolsConfigInput {
   enabled?: boolean
   readGroups?: Partial<Record<CwtoolsReadGroup, boolean>>
-  readTools?: Partial<Record<CwtoolsReadToolName, boolean>>
-  writeTools?: Partial<Record<CwtoolsWriteToolName, boolean>>
+  readTools?: Record<string, boolean>
+  writeTools?: Record<string, boolean>
   backend?: Partial<CwtoolsBackendConfig>
   diagnostics?: Partial<CwtoolsDiagnosticsConfig>
   output?: { maxResultChars?: number }

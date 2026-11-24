@@ -8,12 +8,8 @@ import {
   type SharedToolResult,
 } from 'cwtools-shared'
 import type { Config } from '../config.ts'
-import { isReadToolEnabled, isWriteLocalisationEnabled } from '../config.ts'
-import {
-  CWTOOLS_STELLARIS_ONLY_TOOLS,
-  isCwtoolsReadToolName,
-  isCwtoolsWriteToolName,
-} from '../contract/toolCatalog.ts'
+import { allowedWriteTools, isReadToolEnabled, isWriteToolEnabled } from '../config.ts'
+import { cwtoolsCatalogEntry, cwtoolsGameModelFor, isCwtoolsReadToolName, isCwtoolsWriteToolName } from '../contract/toolCatalog.ts'
 import type { CwtoolsToolCallHandler } from './contracts.ts'
 import { abortError, awaitWithAbort, CwtoolsToolError, throwIfAborted } from './errors.ts'
 import { resolveActiveBackend } from './activeBackend.ts'
@@ -66,23 +62,54 @@ export class CwtoolsRuntimePool {
     return this.exposureReason(name, workspaceRoot) === undefined
   }
 
+  async canExposeWithHost(name: string, workspaceRoot: string, signal: AbortSignal): Promise<boolean> {
+    if (!this.canExpose(name, workspaceRoot)) return false
+    if (cwtoolsCatalogEntry(name)?.group !== 'ide') return true
+    const project = this.resolveProject(workspaceRoot)
+    const existing = this.entries.get(project.root)
+    if (existing) {
+      return isMcpToolAvailable(name, {
+        includeWrites: this.config.writeTools[name] === true,
+        cwtOnly: project.kind === 'cwt-only',
+        capabilities: existing.host.capabilities,
+      })
+    }
+    if (!this.config.backend.preferActiveBackend) return false
+    try {
+      const active = await resolveActiveBackend(this.config, project.root, signal)
+      return active !== undefined
+    } catch {
+      return false
+    }
+  }
+
+  /**
+   * Why a tool may not run in this workspace, or undefined when it may.
+   *
+   * The shared catalog, not this package, owns the tool set: a name the catalog
+   * does not publish is refused here, and a published one is filtered by its
+   * group grant, the write allowlist and the host capability check instead of by
+   * a compiled list of first-release names.
+   */
   exposureReason(name: string, workspaceRoot: string): string | undefined {
     if (this.disposed || !this.config.enabled) return 'CWTools is disabled by configuration.'
     if (isCwtoolsReadToolName(name)) {
       if (!isReadToolEnabled(this.config, name)) return 'Tool ' + name + ' is disabled by read-group or per-tool configuration.'
     } else if (isCwtoolsWriteToolName(name)) {
-      if (!isWriteLocalisationEnabled(this.config)) return 'Tool ' + name + ' requires an explicit write allowlist entry.'
+      if (!isWriteToolEnabled(this.config, name)) return 'Tool ' + name + ' requires an explicit write allowlist entry.'
     } else {
-      return 'Tool ' + name + ' is outside the first-release CWTools catalog.'
+      return 'Tool ' + name + ' is not published by the active cwtools-shared catalog.'
     }
     const project = this.resolveProject(workspaceRoot)
     if (!project.supported) return project.reason
     const cwtOnly = project.kind === 'cwt-only'
-    if (!isMcpToolAvailable(name, { includeWrites: isWriteLocalisationEnabled(this.config), cwtOnly })) {
+    const writes = this.config.writeTools[name] === true
+    if (!isMcpToolAvailable(name, { includeWrites: writes, cwtOnly })) {
       return cwtOnly ? 'Tool ' + name + ' is unavailable in a CWT-only workspace.' : 'Tool ' + name + ' is unavailable under the current write policy.'
     }
-    if (CWTOOLS_STELLARIS_ONLY_TOOLS.has(name) && project.game !== 'stellaris') {
-      return 'Tool ' + name + ' requires a Stellaris full-mod workspace.'
+    const gameModel = cwtoolsGameModelFor(name)
+    if (gameModel !== undefined && project.game !== gameModel) {
+      return 'Tool ' + name + ' requires a full ' + gameModel + ' game workspace.'
     }
     return undefined
   }
@@ -203,7 +230,8 @@ export class CwtoolsRuntimePool {
       if (active && 'dispose' in active.lspHost && typeof active.lspHost.dispose === 'function') active.lspHost.dispose()
       throw new CwtoolsToolError('runtime_disposed', 'The CWTools runtime has been disposed.')
     }
-    const writes = isWriteLocalisationEnabled(this.config)
+    const allowedTools = allowedWriteTools(this.config)
+    const writes = allowedTools.length > 0
     // Apply the filter list configured for this workspace (.vscode/settings.json
     // stellarisLanguageServices.ai.ignoredDiagnostics), exactly like the VS Code extension:
     // it is project configuration, and suppressed diagnostics stay counted.
@@ -218,13 +246,13 @@ export class CwtoolsRuntimePool {
       errorIgnoreFiles: this.config.diagnostics.ignoreFiles,
       localisationDiagnosticFilter: this.config.diagnostics.localisationFilter,
       enableWrites: writes,
-      allowedTools: writes ? ['write_localisation'] : [],
+      allowedTools,
       forceStart: this.config.backend.forceStart,
       startupTimeoutMs: this.config.backend.startupTimeoutMs,
       requestTimeoutMs: this.config.backend.requestTimeoutMs,
       debug: this.config.backend.debug,
       honorWorkspaceIgnoreList: true,
-      ...(active === undefined ? {} : { lspHost: active.lspHost, readyAtMs: active.readyAtMs }),
+      ...(active === undefined ? {} : { lspHost: active.lspHost, ideHost: active.ideHost, readyAtMs: active.readyAtMs }),
     }
     const host = createNodeHostServices(hostOptions)
     const entry: RuntimeEntry = {

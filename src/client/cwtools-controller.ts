@@ -29,9 +29,8 @@ import {
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { CwtoolsConfig } from '../contract/configTypes.ts'
 import {
-  CWTOOLS_READ_GROUP_ORDER, CWTOOLS_READ_TOOL_GROUPS, CWTOOLS_READ_TOOL_NAMES,
-  cwtoolsReadGroupFor,
-  type CwtoolsReadGroup, type CwtoolsReadToolName,
+  CWTOOLS_READ_GROUP_ORDER, CWTOOLS_READ_TOOL_NAMES, cwtoolsReadGroupFor,
+  type CwtoolsReadGroup,
 } from '../contract/toolCatalog.ts'
 
 /** Settings namespace of the Host entry this section edits. */
@@ -62,8 +61,8 @@ export interface CwtoolsSectionState extends SettingsFormShell {
   fields: Record<string, SettingsFieldState>
   /** Effective on-state of each read group. */
   groups: Record<CwtoolsReadGroup, boolean>
-  /** Effective on-state of each tool: its own grant AND its group's. */
-  tools: Record<CwtoolsReadToolName, boolean>
+  /** Effective on-state of each read tool: its own grant AND its group's. */
+  tools: Record<string, boolean>
   /** Whether the refused save lost a revision race with an edit made elsewhere. */
   conflict: boolean
   /** Values the Host still holds after a refused save; empty otherwise. */
@@ -371,7 +370,7 @@ export class CwtoolsSettingsController {
     const stored = (field: string): boolean => fields[field]?.text === 'true'
     const groups = {} as Record<CwtoolsReadGroup, boolean>
     for (const group of CWTOOLS_READ_GROUP_ORDER) groups[group] = stored(`readGroups.${group}`)
-    const tools = {} as Record<CwtoolsReadToolName, boolean>
+    const tools: Record<string, boolean> = {}
     for (const tool of CWTOOLS_READ_TOOL_NAMES) tools[tool] = groups[cwtoolsReadGroupFor(tool)] && stored(`readTools.${tool}`)
     return {
       ...shell,

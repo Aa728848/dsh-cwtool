@@ -157,7 +157,7 @@ describe('CWTools client apply', () => {
     expect(host.recorded).toHaveLength(0)
   })
 
-  it('never offers a tool outside the frozen catalog', () => {
+  it('offers exactly the tools the shared catalog publishes', () => {
     const host = bench()
     apply(host.ctx as never)
     const section = host.recorded.find(entry => entry.key === 'settings.section')
@@ -165,8 +165,9 @@ describe('CWTools client apply', () => {
     const fields = Object.keys(face.hooks.cwtoolsSection.getSnapshot().fields)
     const offered = fields.filter(field => field.startsWith('readTools.')).map(field => field.slice('readTools.'.length))
     expect(offered.sort()).toEqual([...CWTOOLS_READ_TOOL_NAMES].sort())
-    expect(offered).toHaveLength(37)
-    const writes = fields.filter(field => field.startsWith('writeTools.'))
-    expect(writes).toEqual(['writeTools.write_localisation'])
+    expect(offered).toContain('get_ide_context')
+    // The only write control on the page is the one the frame always shows: a
+    // write that is not allowlisted is off, never absent-but-on.
+    expect(fields.filter(field => field.startsWith('writeTools.'))).toEqual(['writeTools.write_localisation'])
   })
 })

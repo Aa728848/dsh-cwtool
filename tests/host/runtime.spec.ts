@@ -21,9 +21,12 @@ import { CwtoolsRuntimePool } from '../../src/host/runtime.ts'
 function config(overrides: Partial<Config> = {}): Config {
   return {
     enabled: true,
-    readGroups: { project: true, localisation: true, semantic: true, navigation: true, diagnostics: true, shader: true },
+    readGroups: {
+      project: true, localisation: true, semantic: true, navigation: true,
+      diagnostics: true, shader: true, ide: true,
+    },
     readTools: {},
-    writeTools: { write_localisation: false },
+    writeTools: {},
     diagnostics: { ignoreCodes: [], ignoreFiles: [], localisationFilter: 'off' as const },
     backend: {
       serverPath: '', gamePath: '', rulesPath: '', cachePath: '', game: '', forceStart: false,
@@ -59,6 +62,36 @@ beforeEach(() => {
     expect(new CwtoolsRuntimePool(disabled).canExpose('query_rules', '/mod')).toBe(false)
   })
 
+  it('does not create a backend merely to check IDE visibility', async () => {
+    const pool = new CwtoolsRuntimePool(config())
+    await expect(pool.canExposeWithHost('get_ide_context', '/mod', new AbortController().signal)).resolves.toBe(false)
+    expect(mocks.createHost).not.toHaveBeenCalled()
+  })
+
+  it('exposes every shared read tool, including the IDE bridge, with no first-release filter', () => {
+    const pool = new CwtoolsRuntimePool(config())
+    expect(pool.canExpose('get_ide_context', '/mod')).toBe(true)
+    expect(pool.canExpose('open_in_visual_editor', '/mod')).toBe(true)
+    expect(pool.exposureReason('query_types', '/mod')).toBeUndefined()
+    const ide = config()
+    ide.readGroups.ide = false
+    expect(new CwtoolsRuntimePool(ide).canExpose('get_ide_context', '/mod')).toBe(false)
+  })
+
+  it('refuses a write the allowlist does not name and accepts one it does', () => {
+    const pool = new CwtoolsRuntimePool(config({ writeTools: { deploy_mod_asset: true } }))
+    expect(pool.exposureReason('deploy_mod_asset', '/mod')).toBeUndefined()
+    expect(pool.exposureReason('write_localisation', '/mod')).toContain('allowlist')
+    const off = config()
+    off.enabled = false
+    expect(new CwtoolsRuntimePool(off).exposureReason('query_types', '/mod')).toContain('disabled')
+  })
+
+  it('refuses a name the shared catalog does not publish', () => {
+    const pool = new CwtoolsRuntimePool(config())
+    expect(pool.exposureReason('not_a_cwtools_tool', '/mod')).toContain('cwtools-shared catalog')
+  })
+
   it('rejects targeting weights outside Stellaris', () => {
     mocks.detect.mockReturnValue({ supported: true, reason: 'fixture', matchedAt: '/mod', kind: 'mod', gameId: 'hoi4' })
     const pool = new CwtoolsRuntimePool(config())
@@ -88,7 +121,7 @@ beforeEach(() => {
   it('applies the filter list configured for the workspace', async () => {
     const pool = new CwtoolsRuntimePool(config())
     await pool.execute('get_diagnostics', {}, '/mod', new AbortController().signal)
-    expect(mocks.createHost).toHaveBeenCalledWith(expect.objectContaining({ honorWorkspaceIgnoreList: true }))
+    expect(mocks.createHost).toHaveBeenCalledWith(expect.objectContaining({ honorWorkspaceIgnoreList: true, enableWrites: false, allowedTools: [] }))
     pool.dispose()
   })
 
@@ -101,6 +134,16 @@ beforeEach(() => {
       errorIgnoreCodes: ['CW274'],
       errorIgnoreFiles: ['zz_legacy.txt'],
       localisationDiagnosticFilter: 'all',
+    }))
+    pool.dispose()
+  })
+
+  it('forwards every allowed write tool to the backend', async () => {
+    const pool = new CwtoolsRuntimePool(config({ writeTools: { write_localisation: true, deploy_mod_asset: true } }))
+    await pool.execute('write_localisation', {}, '/mod', new AbortController().signal)
+    expect(mocks.createHost).toHaveBeenCalledWith(expect.objectContaining({
+      enableWrites: true,
+      allowedTools: ['write_localisation', 'deploy_mod_asset'],
     }))
     pool.dispose()
   })

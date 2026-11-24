@@ -23,7 +23,7 @@ export function defaultConfig(): CwtoolsConfig {
     enabled: true,
     readGroups: Object.fromEntries(CWTOOLS_READ_GROUP_ORDER.map(group => [group, true])) as CwtoolsConfig['readGroups'],
     readTools: {},
-    writeTools: { write_localisation: false },
+    writeTools: {},
     diagnostics: { ignoreCodes: [], ignoreFiles: [], localisationFilter: 'off' },
     backend: {
       serverPath: '',
@@ -214,5 +214,5 @@ export function actionSpies() {
   }
 }
 
-/** Every read tool the first release ships, for count assertions. */
+/** Every read tool the shared catalog publishes, for count assertions. */
 export const READ_TOOL_COUNT = CWTOOLS_READ_TOOL_NAMES.length

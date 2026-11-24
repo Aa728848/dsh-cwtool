@@ -28,7 +28,7 @@ export type CwtoolsLocaleKey =
   | 'maxResultChars' | 'maxResultCharsHint'
   | 'writeLocalisation' | 'writeLocalisationHint' | 'writePolicyNote'
   | 'groupProject' | 'groupLocalisation' | 'groupSemantic'
-  | 'groupNavigation' | 'groupDiagnostics' | 'groupShader'
+  | 'groupNavigation' | 'groupDiagnostics' | 'groupShader' | 'groupIde'
   | 'groupDisabledNote' | 'readAccessIntro'
   | 'ignoreCodes' | 'ignoreCodesHint' | 'ignoreFiles' | 'ignoreFilesHint'
   | 'localisationFilter' | 'localisationFilterHint'
@@ -101,6 +101,7 @@ export const en: Record<CwtoolsLocaleKey, string> = {
   groupNavigation: 'Navigation',
   groupDiagnostics: 'Diagnostics',
   groupShader: 'Shader',
+  groupIde: 'IDE bridge',
   groupDisabledNote: 'Tool choices inside a disabled group are kept.',
   readAccessIntro: 'A group gates its tools. A tool runs only when the group and the tool are both on.',
   overridden: 'Overridden',
@@ -183,6 +184,7 @@ export const zh: Record<CwtoolsLocaleKey, string> = {
   groupNavigation: '导航',
   groupDiagnostics: '诊断',
   groupShader: '着色器',
+  groupIde: 'IDE 桥接',
   groupDisabledNote: '组关闭时，组内工具的选择仍然保留。',
   readAccessIntro: '组是其工具的开关。只有组和工具同时开启，工具才会运行。',
   overridden: '已覆盖',

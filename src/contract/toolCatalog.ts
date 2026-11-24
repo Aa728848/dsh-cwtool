@@ -1,81 +1,153 @@
-export const CWTOOLS_READ_TOOL_GROUPS = {
-  project: [
-    'query_project_profile',
-    'query_project_knowledge',
-    'query_workspace_index',
-    'explore_pdx_project',
-    'analyze_pdx_flow',
-    'query_inline_instantiation',
-    'compare_definition_with_vanilla',
-  ],
-  localisation: ['query_localisation_index'],
-  semantic: [
-    'query_types',
-    'query_rules',
-    'query_cwt_schema',
-    'search_rule_capabilities',
-    'explain_scope',
-    'parse_pdx_fragment',
-    'query_scope',
-    'query_scripted_effects',
-    'query_scripted_triggers',
-    'query_enums',
-    'query_static_modifiers',
-    'query_variables',
-    'get_entity_info',
-    'get_pdx_block',
-    'query_targeting_weight',
-  ],
-  navigation: [
-    'get_completion_at',
-    'document_symbols',
-    'workspace_symbols',
-    'go_to_definition',
-    'find_references',
-  ],
-  diagnostics: ['get_diagnostics', 'analyze_diagnostic_error'],
-  shader: [
-    'query_shader_symbol',
-    'query_shader_compile_unit',
-    'query_shader_platform_variants',
-    'query_shader_callers',
-    'explain_shader_reachability',
-    'validate_shader',
-    'compare_shader_with_vanilla',
-  ],
-} as const
+import { getMcpToolRegistryMetadata, isMcpWriteToolName, listMcpToolSchemas } from 'cwtools-shared'
 
-export type CwtoolsReadGroup = keyof typeof CWTOOLS_READ_TOOL_GROUPS
-export type CwtoolsReadToolName = typeof CWTOOLS_READ_TOOL_GROUPS[CwtoolsReadGroup][number]
-export const CWTOOLS_READ_GROUP_ORDER: readonly CwtoolsReadGroup[] = [
-  'project', 'localisation', 'semantic', 'navigation', 'diagnostics', 'shader',
-]
-export const CWTOOLS_READ_TOOL_NAMES: readonly CwtoolsReadToolName[] = Object.freeze(
-  CWTOOLS_READ_GROUP_ORDER.flatMap(group => [...CWTOOLS_READ_TOOL_GROUPS[group]]),
+/**
+ * How the settings page groups the shared tool catalog.
+ *
+ * The catalog itself is owned by `cwtools-shared`: this module never keeps a
+ * copy of tool names. It only records which group a shared tool is presented
+ * under, so a tool added upstream appears in the page — and in the Host — on its
+ * own, with no edit here.
+ */
+export const CWTOOLS_READ_GROUPS = [
+  'project',
+  'localisation',
+  'semantic',
+  'navigation',
+  'diagnostics',
+  'shader',
+  'ide',
+] as const
+
+export type CwtoolsReadGroup = typeof CWTOOLS_READ_GROUPS[number]
+
+/** Groups in the order the settings page renders them. */
+export const CWTOOLS_READ_GROUP_ORDER: readonly CwtoolsReadGroup[] = CWTOOLS_READ_GROUPS
+
+/**
+ * Tools that belong to a specific group rather than the group their shared
+ * effect implies. Only tools whose purpose the effect cannot express, or whose
+ * group assignment is otherwise surprising, need an entry; everything else
+ * falls back to {@link cwtoolsReadGroupForEffect}.
+ */
+const GROUP_OVERRIDES: Readonly<Record<string, CwtoolsReadGroup>> = {
+  query_localisation_index: 'localisation',
+  get_diagnostics: 'diagnostics',
+  analyze_diagnostic_error: 'diagnostics',
+  get_ide_context: 'ide',
+  open_in_visual_editor: 'ide',
+  query_shader_symbol: 'shader',
+  query_shader_compile_unit: 'shader',
+  query_shader_platform_variants: 'shader',
+  query_shader_callers: 'shader',
+  explain_shader_reachability: 'shader',
+  validate_shader: 'shader',
+  compare_shader_with_vanilla: 'shader',
+}
+
+/**
+ * Tools that only answer inside a workspace with a full game model. Everything
+ * else a host cannot run is filtered per call by `isMcpToolAvailable`
+ * (CWT-only workspaces, write policy) instead of by name.
+ */
+const GAME_MODEL_TOOLS: Readonly<Record<string, string>> = {
+  query_targeting_weight: 'stellaris',
+}
+
+interface CatalogEntry {
+  readonly name: string
+  readonly description: string
+  readonly inputSchema: Record<string, unknown>
+  readonly isWrite: boolean
+  readonly group: CwtoolsReadGroup
+}
+
+function readGroupForEffect(name: string, effect: string | undefined): CwtoolsReadGroup {
+  const override = GROUP_OVERRIDES[name]
+  if (override !== undefined) return override
+  switch (effect) {
+    case 'workspace_read':
+      return 'semantic'
+    case 'memory':
+    case 'none':
+      return 'project'
+    default:
+      // A future effect this page does not know yet still gets a home, so an
+      // upstream addition can never be silently dropped from the catalog.
+      return 'semantic'
+  }
+}
+
+function buildCatalog(): readonly CatalogEntry[] {
+  return listMcpToolSchemas({ includeWrites: true }).map((schema) => {
+    const metadata = getMcpToolRegistryMetadata(schema.name)
+    const isWrite = isMcpWriteToolName(schema.name) || metadata?.isWrite === true
+    return {
+      name: schema.name,
+      description: schema.description,
+      inputSchema: schema.inputSchema as Record<string, unknown>,
+      isWrite,
+      group: readGroupForEffect(schema.name, metadata?.effect),
+    }
+  })
+}
+
+/** Every tool the shared catalog publishes, read once at load. */
+export const CWTOOLS_CATALOG: readonly CatalogEntry[] = Object.freeze(buildCatalog())
+
+const byName = new Map(CWTOOLS_CATALOG.map(entry => [entry.name, entry]))
+
+/** Read-only tools in rendering order: group order, then shared catalog order. */
+export const CWTOOLS_READ_TOOL_NAMES: readonly string[] = Object.freeze(
+  CWTOOLS_READ_GROUP_ORDER.flatMap(group =>
+    CWTOOLS_CATALOG.filter(entry => !entry.isWrite && entry.group === group).map(entry => entry.name)),
 )
-export const CWTOOLS_WRITE_TOOL_NAMES = ['write_localisation'] as const
-export type CwtoolsWriteToolName = typeof CWTOOLS_WRITE_TOOL_NAMES[number]
-export const CWTOOLS_FIRST_RELEASE_TOOL_NAMES: readonly string[] = [
-  ...CWTOOLS_READ_TOOL_NAMES,
-  ...CWTOOLS_WRITE_TOOL_NAMES,
-]
-export const CWTOOLS_STELLARIS_ONLY_TOOLS: ReadonlySet<string> = new Set(['query_targeting_weight'])
 
-const groupByTool = new Map<string, CwtoolsReadGroup>()
-for (const group of CWTOOLS_READ_GROUP_ORDER) {
-  for (const name of CWTOOLS_READ_TOOL_GROUPS[group]) groupByTool.set(name, group)
+/** Tools per group, in rendering order. */
+export const CWTOOLS_READ_TOOL_GROUPS: Readonly<Record<CwtoolsReadGroup, readonly string[]>> = Object.freeze(
+  CWTOOLS_READ_GROUP_ORDER.reduce<Record<CwtoolsReadGroup, readonly string[]>>((groups, group) => {
+    groups[group] = CWTOOLS_CATALOG
+      .filter(entry => !entry.isWrite && entry.group === group)
+      .map(entry => entry.name)
+    return groups
+  }, {} as Record<CwtoolsReadGroup, readonly string[]>),
+)
+
+/** Write tools the shared catalog publishes. Every one needs an explicit grant. */
+export const CWTOOLS_WRITE_TOOL_NAMES: readonly string[] = Object.freeze(
+  CWTOOLS_CATALOG.filter(entry => entry.isWrite).map(entry => entry.name),
+)
+
+/** @returns the catalog entry of one tool, or undefined when the shared catalog has no such tool. */
+export function cwtoolsCatalogEntry(name: string): CatalogEntry | undefined {
+  return byName.get(name)
 }
 
-export function isCwtoolsReadToolName(name: string): name is CwtoolsReadToolName {
-  return groupByTool.has(name)
+/** @returns whether the shared catalog publishes this tool as read-only. */
+export function isCwtoolsReadToolName(name: string): boolean {
+  const entry = byName.get(name)
+  return entry !== undefined && !entry.isWrite
 }
 
-export function isCwtoolsWriteToolName(name: string): name is CwtoolsWriteToolName {
-  return (CWTOOLS_WRITE_TOOL_NAMES as readonly string[]).includes(name)
+/** @returns whether the shared catalog publishes this tool as a write. */
+export function isCwtoolsWriteToolName(name: string): boolean {
+  const entry = byName.get(name)
+  return entry === undefined ? isMcpWriteToolName(name) : entry.isWrite
 }
 
-export function cwtoolsReadGroupFor(name: CwtoolsReadToolName): CwtoolsReadGroup {
-  const group = groupByTool.get(name)
-  if (group === undefined) throw new Error('Unknown CWTools read tool: ' + name)
-  return group
+/**
+ * The catalog group a read tool is presented under.
+ * @throws when the shared catalog has no such read tool.
+ */
+export function cwtoolsReadGroupFor(name: string): CwtoolsReadGroup {
+  const entry = byName.get(name)
+  if (entry === undefined || entry.isWrite) throw new Error('Unknown CWTools read tool: ' + name)
+  return entry.group
+}
+
+/**
+ * The game model a tool needs, when it only answers against a full game workspace.
+ * @returns the game identifier, or undefined when the tool works anywhere.
+ */
+export function cwtoolsGameModelFor(name: string): string | undefined {
+  return GAME_MODEL_TOOLS[name]
 }

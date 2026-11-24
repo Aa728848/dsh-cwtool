@@ -9,16 +9,16 @@
 
 ### Features
 
-- Up to 37 read-only tools for project knowledge, rules and scopes, navigation, diagnostics, localisation, semantic analysis, and Shader queries.
+- Every read-only tool the installed `cwtools-shared` publishes, grouped for project knowledge, rules and scopes, navigation, diagnostics, localisation, semantic analysis, Shader queries, and IDE bridge calls.
 - `query_targeting_weight` for Stellaris combat targeting calculations.
 - Diagnostics honour the filter list configured for the workspace (`.vscode/settings.json`), and suppressed items stay counted.
 - Vanilla-game errors are off by default; the settings page also forwards ignored error codes, ignored file names, and the localisation diagnostic filter to the backend.
-- Optional `write_localisation`, disabled by default, with workspace path checks and UTF-8 BOM handling.
+- Every write stays disabled until its own name is stored in the write allowlist; `write_localisation` keeps workspace path checks and UTF-8 BOM handling.
 - Active-first backend reuse over a dedicated `/cwtools/*` HTTP API, with no second process when a healthy matching host exists.
 - A bounded runtime per mod workspace with single-flight startup, LRU/idle disposal, cooperative cancellation, and backend protocol/capability checks.
 - A bilingual CWTools settings section split into Project, Backend, Read tools, and Write and output tabs, covering backend paths, runtime bounds, read groups, individual read tools, the write allowlist, and output limits.
 
-CWT-only workspaces expose only their supported document/navigation/diagnostic subset. Targeting weights require a Stellaris full-mod workspace. The five VS Code-dependent domain writes, IDE tools, and visual editors are outside this release.
+Nothing is filtered by a compiled tool list: a tool is hidden only when the shared catalog does not publish it, the configuration withdraws its group or grant, the workspace is CWT-only, or the backend cannot answer it. CWT-only workspaces expose only their supported document/navigation/diagnostic subset, and targeting weights require a Stellaris full-mod workspace.
 
 ### Requirements
 
@@ -60,16 +60,16 @@ See `ARCHITECTURE.md` for data flow and `CONTRIBUTING.md` for verification.
 
 ### 功能
 
-- 最多 37 个只读工具，覆盖项目知识、规则与作用域、导航、诊断、本地化、语义分析和 Shader 查询。
+- 覆盖已安装 `cwtools-shared` 发布的全部只读工具，按项目知识、规则与作用域、导航、诊断、本地化、语义分析、Shader 查询和 IDE 桥接分组。
 - 使用 `query_targeting_weight` 计算 Stellaris 战斗索敌权重。
 - 诊断会按工作区配置的过滤列表（`.vscode/settings.json`）过滤，被过滤掉的条目仍计入统计。
 - 原版游戏错误默认关闭；设置页还会把忽略的错误码、忽略的文件名和本地化诊断过滤模式透传给后端。
-- 可选 `write_localisation`，默认关闭，带工作区路径约束和 UTF-8 BOM 处理。
+- 所有写工具默认关闭，只有在写入白名单中显式保存其名称后才生效；`write_localisation` 保留工作区路径约束和 UTF-8 BOM 处理。
 - 通过独立 `/cwtools/*` HTTP API 优先复用活跃后端，工作区匹配且健康时不创建第二个进程。
 - 每个 Mod 工作区使用有界运行时，支持 single-flight 启动、LRU/idle 释放、协作取消和后端协议/能力握手。
 - 中英双语 CWTools 设置分区，分为项目 / 后端 / 只读工具 / 写入与输出四个页签，覆盖后端路径、运行时上限、只读组、单个只读工具、写入白名单和结果上限。
 
-CWT-only 工作区只提供支持的文档、导航和诊断子集。索敌权重只用于 Stellaris full-mod 工作区。另外五个依赖 VS Code 的领域写入、IDE 工具和可视化编辑器不在首版范围内。
+不再有任何编译期工具清单：只有共享目录未发布、配置关闭了能力组或单工具、工作区是 CWT-only，或后端无法应答时，工具才会被隐藏。CWT-only 工作区只提供支持的文档、导航和诊断子集，索敌权重只用于 Stellaris full-mod 工作区。
 
 ### 环境要求
 

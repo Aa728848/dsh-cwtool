@@ -1,7 +1,7 @@
 /** What the CWTools section stages, what one save writes, and what a refusal keeps. */
 
 import { describe, expect, it } from 'vitest'
-import { CWTOOLS_READ_TOOL_NAMES } from '../../src/contract/toolCatalog.ts'
+import { CWTOOLS_READ_GROUP_ORDER, CWTOOLS_READ_TOOL_NAMES } from '../../src/contract/toolCatalog.ts'
 import { CWTOOLS_SETTINGS_NAMESPACE, CwtoolsSettingsController } from '../../src/client/cwtools-controller.ts'
 import { TestConfigForm, defaultConfig } from './fixtures.ts'
 
@@ -22,8 +22,12 @@ describe('CwtoolsSettingsController defaults', () => {
     const current = state()
     // master switch + backend text/number/switch fields + diagnostic lists/filter
     // + read groups + read tools + write + output
-    expect(Object.keys(current.fields)).toHaveLength(1 + 5 + 2 + 4 + 3 + 6 + CWTOOLS_READ_TOOL_NAMES.length + 1 + 1 + 2)
+    // The group count follows the catalog contract, so a new group cannot be
+    // added to the page and silently skipped by this assertion.
+    expect(Object.keys(current.fields)).toHaveLength(1 + 5 + 2 + 6 + 3 + CWTOOLS_READ_GROUP_ORDER.length + CWTOOLS_READ_TOOL_NAMES.length + 2)
     for (const tool of CWTOOLS_READ_TOOL_NAMES) expect(current.tools[tool]).toBe(true)
+    // No write is granted until someone stores its name in the allowlist: the
+    // control exists, and its stored value is off.
     expect(current.fields['writeTools.write_localisation']?.text).toBe('false')
     expect(current.fields['backend.serverPath']?.text).toBe('')
     expect(current.fields['backend.maxWorkspaceRuntimes']?.text).toBe('2')

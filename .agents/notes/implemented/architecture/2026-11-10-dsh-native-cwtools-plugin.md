@@ -10,7 +10,7 @@ DSH 需要直接使用 CWTools 的 Paradox 语义能力，但现有独立 Node �
 
 2026-11-10 落地独立 `dsh-cwtools` 组合包。Host 使用 DSH 原生 `ctx.tools.register`，依赖 `cwtools-shared` 的 schema/分派/索敌权重和 `cwtools-node` 的项目识别/LSP 宿主，不包含 MCP SDK、MCP transport 或 MCP `/rpc` 客户端。后续增加的原生活跃宿主客户端只访问独立 `/cwtools/*` API。
 
-- 首版目录在 `src/contract/toolCatalog.ts` 唯一持有：37 个只读工具和 `write_localisation`。CWT-only 只暴露支持的子集，索敌权重仅用于 Stellaris full-mod；另外五个 VS Code 依赖写入和两个 IDE 工具不注册。
+- 工具目录由 `cwtools-shared` 唯一持有，`src/contract/toolCatalog.ts` 只做投影：不保存任何工具名，只保留设置分组、少量归组例外（诊断、着色器、本地化、IDE 桥接）与「需要完整游戏模型」的数据表。注册遍历整份目录，CWT-only 子集与写策略由 `isMcpToolAvailable` 逐次判定，索敌权重仅用于 Stellaris full-mod；共享目录新增工具无需改本包即可暴露。
 - `CwtoolsRuntimePool` 按 Session cwd 和解析后的 mod root 复用宿主，支持项目门禁、single-flight、LRU、idle、容量背压、按并发类别串行和统一释放。步骤级 `when` 不启动 LSP。
 - `preferActiveBackend` 默认开启，`activeManifestPath` 空值自动发现。发现校验 manifest 结构、原生 URL/token、正整数 pid、精确 workspace、健康状态与协议版本；缺失/畸形/失效/不匹配/未活跃/连接失败或超时回退独立后端，AbortSignal 原样传播。健康宿主注入 `NativeBridgeLspHost`，复用其余 Node Host Services而不创建进程。不兼容协议或能力握手返回 `backend_incompatible`，绝不双开。运行时已创建后不热迁移，偏好关闭时完全跳过发现；唯一例外是活跃后端返回 `active_unavailable`/`bridge_unavailable`：此时池丢弃该 runtime、重新执行一次发现（可回退独立后端）并重试一次，避免坏连接一直续命到 `idleShutdownMs`。
 - 后端在 initialize 后、模型加载通知前执行能力握手，检查协议版本、release 清单版本和 29 条真实调用命令。AbortSignal 连接 JSON-RPC CancellationTokenSource，abort/deadline 发送 `$/cancelRequest`，启动失败/中止由宿主自行清理子进程。

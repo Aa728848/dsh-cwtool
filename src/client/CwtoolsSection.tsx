@@ -2,9 +2,10 @@
  * The CWTools settings section.
  *
  * One page over the `cwtools` Host entry, split into four tabs: the project
- * and its game, the backend and its runtime bounds, the six read groups with
- * their 37 tools, and the write allowlist with the result preview bound. The
- * master switch stays above the tabs because it gates every other control.
+ * and its game, the backend and its runtime bounds, the read groups with the
+ * tools the shared catalog publishes, and the write allowlist with the result
+ * preview bound. The master switch stays above the tabs because it gates every
+ * other control.
  *
  * The page stages nothing itself: every control reports what the user typed to
  * the controller, and the shared `SettingsForm` frame is the single place a
@@ -53,6 +54,7 @@ const GROUP_LABEL: Record<CwtoolsReadGroup, CwtoolsLocaleKey> = {
   navigation: 'groupNavigation',
   diagnostics: 'groupDiagnostics',
   shader: 'groupShader',
+  ide: 'groupIde',
 }
 
 /** Label and hint of every named field, keyed by dotted path. */

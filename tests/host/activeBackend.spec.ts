@@ -4,6 +4,7 @@ import type { Config } from '../../src/config.ts'
 const mocks = vi.hoisted(() => ({
   discover: vi.fn(),
   createActive: vi.fn(),
+  createIde: vi.fn(),
   createHost: vi.fn(),
   dispose: vi.fn(),
   handler: vi.fn(),
@@ -11,6 +12,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('cwtools-node', () => ({
   discoverNativeBridge: mocks.discover,
   createNativeBridgeLspHost: mocks.createActive,
+  createNativeBridgeIdeHost: mocks.createIde,
   createNodeHostServices: mocks.createHost,
   detectProjectSupport: vi.fn(() => ({ supported: true, reason: 'fixture', matchedAt: '/mod', kind: 'mod', gameId: 'stellaris' })),
 }))
@@ -24,9 +26,12 @@ import { CwtoolsRuntimePool } from '../../src/host/runtime.ts'
 function config(preferActiveBackend: boolean): Config {
   return {
     enabled: true,
-    readGroups: { project: true, localisation: true, semantic: true, navigation: true, diagnostics: true, shader: true },
+    readGroups: {
+      project: true, localisation: true, semantic: true, navigation: true,
+      diagnostics: true, shader: true, ide: true,
+    },
     readTools: {},
-    writeTools: { write_localisation: false },
+    writeTools: {},
     diagnostics: { ignoreCodes: [], ignoreFiles: [], localisationFilter: 'off' as const },
     backend: {
       serverPath: '', gamePath: '', rulesPath: '', cachePath: '', game: '', forceStart: false,
@@ -40,6 +45,7 @@ function config(preferActiveBackend: boolean): Config {
 beforeEach(() => {
   vi.clearAllMocks()
   mocks.createActive.mockReturnValue({ dispose: mocks.dispose })
+  mocks.createIde.mockReturnValue({})
   mocks.createHost.mockReturnValue({ dispose: mocks.dispose })
   mocks.handler.mockResolvedValue({ ok: true, status: 'ready', source: 'test' })
   mocks.discover.mockResolvedValue({ kind: 'unavailable', reason: 'missing' })

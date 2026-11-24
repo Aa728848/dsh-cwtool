@@ -6,7 +6,7 @@ import { useSyncExternalStore } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { CwtoolsConfig } from '../../src/contract/configTypes.ts'
-import { CWTOOLS_READ_TOOL_NAMES } from '../../src/contract/toolCatalog.ts'
+import { CWTOOLS_READ_GROUP_ORDER, CWTOOLS_READ_TOOL_NAMES } from '../../src/contract/toolCatalog.ts'
 import { CwtoolsSettingsController, type CwtoolsSectionState } from '../../src/client/cwtools-controller.ts'
 import { CwtoolsSection, type CwtoolsSectionProps } from '../../src/client/CwtoolsSection.tsx'
 import { en, zh, type CwtoolsLocaleKey } from '../../src/client/locales.ts'
@@ -71,15 +71,27 @@ describe('CwtoolsSection rendering', () => {
     expect(screen.getByRole('switch', { name: en.writeLocalisation }).getAttribute('aria-checked')).toBe('false')
   })
 
-  it('renders exactly the six groups and 37 shipped tools, and nothing this release does not ship', () => {
+  it('renders one group per catalog group with every shared read tool it publishes', () => {
     renderSection()
     openTab(en.tabRead)
-    const groups = [en.groupProject, en.groupLocalisation, en.groupSemantic, en.groupNavigation, en.groupDiagnostics, en.groupShader]
+    const groups = [
+      en.groupProject, en.groupLocalisation, en.groupSemantic, en.groupNavigation,
+      en.groupDiagnostics, en.groupShader, en.groupIde,
+    ]
+    expect(groups).toHaveLength(CWTOOLS_READ_GROUP_ORDER.length)
     for (const group of groups) expect(screen.getAllByRole('switch', { name: group })).toHaveLength(1)
-    expect(screen.getAllByRole('switch')).toHaveLength(1 + 6 + CWTOOLS_READ_TOOL_NAMES.length)
+    expect(screen.getAllByRole('switch')).toHaveLength(1 + groups.length + CWTOOLS_READ_TOOL_NAMES.length)
     for (const tool of CWTOOLS_READ_TOOL_NAMES) expect(screen.getByRole('switch', { name: tool })).toBeTruthy()
+    // A tool the catalog does not publish has no control.
     expect(document.body.textContent).not.toContain('write_file')
-    expect(document.body.textContent).not.toContain('ide_')
+    expect(document.body.textContent).not.toContain('not_a_cwtools_tool')
+  })
+
+  it('offers the IDE bridge reads, and drops them when their group is off', () => {
+    renderSection()
+    openTab(en.tabRead)
+    expect(screen.getByRole('switch', { name: 'get_ide_context' })).toBeTruthy()
+    expect(screen.getByRole('switch', { name: 'open_in_visual_editor' })).toBeTruthy()
   })
 
   it('renders the diagnostic filter controls and stages the workspace noise settings', async () => {

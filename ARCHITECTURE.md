@@ -13,9 +13,9 @@
 
 ### Tool admission and execution
 
-`src/contract/toolCatalog.ts` is the single first-release catalog for Host and Client. `src/config.ts` validates Host configuration. A read tool is effective only when the master switch, its group, its own grant and project capability all allow it. The write is independently controlled by `writeTools.write_localisation` and defaults to false.
+`cwtools-shared` owns the tool catalog: `listMcpToolSchemas` and `getMcpToolRegistryMetadata` publish every tool and its write flag. `src/contract/toolCatalog.ts` projects that set for Host and Client — it keeps no tool names, only the settings groups and a small table that files a tool under a group or records the game model it needs — so a tool added upstream is exposed without an edit here. `src/config.ts` validates Host configuration. A read tool is effective only when the master switch, its group, its own grant and project capability all allow it; a tool the catalog does not publish is never granted. Every write is off until its own name is stored in `writeTools` and stays subject to DSH tool policy.
 
-Registration uses generated input schemas and a step-time `when` condition that performs read-only project detection without starting LSP. Execution resolves `ctx.workingDirectory.ensure(exec.agent, exec.signal)`; it never falls back to the plugin process cwd. Detection rejects unsupported or ambiguous projects before process creation. CWT-only and Stellaris-only filters apply again at execution.
+Registration iterates the whole catalog once, using generated input schemas, and attaches a step-time `when` condition that performs read-only project detection without starting LSP; whether a tool is visible is therefore decided by configuration and capability at call time, not by registration. Execution resolves `ctx.workingDirectory.ensure(exec.agent, exec.signal)`; it never falls back to the plugin process cwd. Detection rejects unsupported or ambiguous projects before process creation. CWT-only and Stellaris-only filters apply again at execution.
 
 The pool creates a `cwtools-node` host per resolved mod root, with single-flight reuse, a configured maximum, LRU and idle disposal. Calls marked `parallel` may overlap; other classes serialize per workspace. Disposal aborts active calls and releases watchers, timers, JSON-RPC connections and child processes.
 
@@ -52,9 +52,9 @@ The runtime Client export surface contains only `apply` and `inject`. Components
 
 ### 工具准入与执行
 
-`src/contract/toolCatalog.ts` 是 Host 与 Client 共用的首版目录，`src/config.ts` 校验 Host 配置。只读工具只有在总开关、能力组、单工具和项目能力同时允许时才生效。`writeTools.write_localisation` 独立控制，默认关闭。
+工具目录由 `cwtools-shared` 拥有：`listMcpToolSchemas` 与 `getMcpToolRegistryMetadata` 给出全部工具及其写入标记。`src/contract/toolCatalog.ts` 只是面向 Host 与 Client 的投影，不保存工具名，仅保留设置分组、把个别工具归入指定分组或记录所需游戏模型的少量数据表，因此上游新增工具无需修改本包即可暴露。`src/config.ts` 校验 Host 配置。只读工具只有在总开关、能力组、单工具和项目能力同时允许时才生效；共享目录未发布的工具一律不授权。每个写工具都默认关闭，只有在 `writeTools` 中显式写入其名称后才生效，并继续受 DSH 工具策略约束。
 
-注册使用生成的 input schema，步骤级 `when` 只做只读项目检测，不启动 LSP。执行通过 `ctx.workingDirectory.ensure(exec.agent, exec.signal)` 取得目录，绝不回退到插件进程 cwd。不支持或歧义项目在创建进程前被拒绝，CWT-only 和 Stellaris-only 过滤在执行时再次生效。
+注册时遍历整份目录，使用生成的 input schema，并附加步骤级 `when`，只做只读项目检测、不启动 LSP；因此工具是否可见由调用时的配置与能力决定，而不是由注册表决定。执行通过 `ctx.workingDirectory.ensure(exec.agent, exec.signal)` 取得目录，绝不回退到插件进程 cwd。不支持或歧义项目在创建进程前被拒绝，CWT-only 和 Stellaris-only 过滤在执行时再次生效。
 
 运行时池按解析后的 mod root 创建 `cwtools-node` 宿主，支持 single-flight 复用、配置上限、LRU 和 idle 释放。`parallel` 调用可重叠，其余类别按工作区串行。释放会中止活动调用，并清理 watcher、timer、JSON-RPC 连接和子进程。
 

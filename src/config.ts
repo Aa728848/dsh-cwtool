@@ -4,8 +4,8 @@ import type {
   CwtoolsBackendConfig, CwtoolsConfig, CwtoolsConfigInput, CwtoolsDiagnosticsConfig,
 } from './contract/configTypes.ts'
 import {
-  cwtoolsReadGroupFor,
-  type CwtoolsReadGroup, type CwtoolsReadToolName, type CwtoolsWriteToolName,
+  cwtoolsReadGroupFor, CWTOOLS_READ_GROUPS, isCwtoolsReadToolName,
+  type CwtoolsReadGroup,
 } from './contract/toolCatalog.ts'
 
 /** Plain, unwrapped values the runtime consumes. */
@@ -20,14 +20,24 @@ export type Config = CwtoolsConfig
 export interface CwtoolsLiveConfig {
   enabled: Volatile<boolean>
   readGroups: Volatile<Record<CwtoolsReadGroup, boolean>>
-  readTools: Volatile<Partial<Record<CwtoolsReadToolName, boolean>>>
-  writeTools: Volatile<Partial<Record<CwtoolsWriteToolName, boolean>>>
+  readTools: Volatile<Record<string, boolean>>
+  writeTools: Volatile<Record<string, boolean>>
   backend: Volatile<CwtoolsBackendConfig>
   diagnostics: Volatile<CwtoolsDiagnosticsConfig>
   output: Volatile<{ maxResultChars: number }>
 }
 
 const timer = z.number().step(1).min(1).max(2_147_483_647)
+
+const defaultGroups = (enabled: boolean): Record<CwtoolsReadGroup, boolean> =>
+  Object.fromEntries(CWTOOLS_READ_GROUPS.map(group => [group, enabled])) as Record<CwtoolsReadGroup, boolean>
+
+/**
+ * The tool ledger. Keys are not enumerated: the shared catalog publishes the
+ * tool set, and this schema only stores the grants someone overrode. A stored
+ * key for a tool the catalog no longer publishes is harmless.
+ */
+const toolLedger = z.dict(z.boolean(), z.string()).default({})
 
 export const Config: z<CwtoolsConfigInput, CwtoolsLiveConfig> = z.object({
   enabled: z.boolean().default(true).volatile(),
@@ -38,11 +48,11 @@ export const Config: z<CwtoolsConfigInput, CwtoolsLiveConfig> = z.object({
     navigation: z.boolean().default(true),
     diagnostics: z.boolean().default(true),
     shader: z.boolean().default(true),
+    ide: z.boolean().default(true),
   }).default({}).volatile(),
-  readTools: z.dict(z.boolean(), z.string()).default({}).volatile(),
-  writeTools: z.object({
-    write_localisation: z.boolean().default(false),
-  }).default({}).volatile(),
+  readTools: toolLedger.volatile(),
+  // Every write stays off until someone stores its name here.
+  writeTools: toolLedger.volatile(),
   backend: z.object({
     serverPath: z.string().default(''),
     gamePath: z.string().default(''),
@@ -64,7 +74,7 @@ export const Config: z<CwtoolsConfigInput, CwtoolsLiveConfig> = z.object({
     localisationFilter: z.union([z.const('off'), z.const('problems'), z.const('all')]).default('off'),
   }).default({}).volatile(),
   output: z.object({
-    maxResultChars: z.number().step(1).min(1000).max(200_000).default(16_000),
+    maxResultChars: z.number().step(1).min(1_000).max(200_000).default(16_000),
   }).default({}).volatile(),
 })
 
@@ -75,7 +85,7 @@ export const Config: z<CwtoolsConfigInput, CwtoolsLiveConfig> = z.object({
 export function snapshotConfig(config: CwtoolsLiveConfig): Config {
   return {
     enabled: config.enabled.get(),
-    readGroups: { ...config.readGroups.get() },
+    readGroups: { ...defaultGroups(true), ...config.readGroups.get() },
     readTools: { ...config.readTools.get() },
     writeTools: { ...config.writeTools.get() },
     backend: { ...config.backend.get() },
@@ -88,10 +98,36 @@ export function snapshotConfig(config: CwtoolsLiveConfig): Config {
   }
 }
 
-export function isReadToolEnabled(config: Config, name: CwtoolsReadToolName): boolean {
-  return config.enabled && config.readGroups[cwtoolsReadGroupFor(name)] && config.readTools[name] !== false
+/**
+ * Whether a read tool may run. A tool unknown to this build is not granted:
+ * the value must come from the shared catalog so a stale name cannot open a
+ * gate, and a stored `false` is the only per-tool opt-out.
+ * @param config - the snapshot the current operation runs against.
+ * @param name - the tool the model called.
+ * @returns whether the master switch, its group, and its own entry all allow it.
+ */
+export function isReadToolEnabled(config: Config, name: string): boolean {
+  return config.enabled && isCwtoolsReadToolName(name)
+    && config.readGroups[cwtoolsReadGroupFor(name)] === true
+    && config.readTools[name] !== false
 }
 
+/**
+ * Whether the write allowlist names this tool.
+ * @param config - the snapshot the current operation runs against.
+ * @param name - the write tool the model called.
+ * @returns whether the operator explicitly allowed it.
+ */
+export function isWriteToolEnabled(config: Config, name: string): boolean {
+  return config.enabled && config.writeTools[name] === true
+}
+
+/** @deprecated Prefer {@link isWriteToolEnabled}; kept for the localisation settings path. */
 export function isWriteLocalisationEnabled(config: Config): boolean {
-  return config.enabled && config.writeTools.write_localisation === true
+  return isWriteToolEnabled(config, 'write_localisation')
+}
+
+/** @returns the write tools this configuration allows, in catalog order. */
+export function allowedWriteTools(config: Config): string[] {
+  return Object.keys(config.writeTools).filter(name => isWriteToolEnabled(config, name))
 }

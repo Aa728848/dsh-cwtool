@@ -1,29 +1,34 @@
 import type {} from '@deepseek-ai/dsh-working-directory'
 import type { Context } from '@deepseek-ai/cordis'
 import type { ToolDefinition, ToolRunContext } from '@deepseek-ai/dsh-tools'
-import { getMcpToolRegistryMetadata, listMcpToolSchemas } from 'cwtools-shared'
-import type { Config } from '../config.ts'
-import { isReadToolEnabled, isWriteLocalisationEnabled } from '../config.ts'
-import {
-  CWTOOLS_FIRST_RELEASE_TOOL_NAMES,
-  isCwtoolsReadToolName,
-} from '../contract/toolCatalog.ts'
+import { getMcpToolRegistryMetadata } from 'cwtools-shared'
+import { isReadToolEnabled, isWriteToolEnabled, type Config } from '../config.ts'
+import { CWTOOLS_CATALOG, isCwtoolsWriteToolName } from '../contract/toolCatalog.ts'
 import { CwtoolsToolError } from './errors.ts'
 import { errorFromSharedResult, normalizeSuccessfulResult, renderCwtoolsResult, SUCCESS_OUTPUT_SCHEMA } from './results.ts'
 import type { CwtoolsRuntimePool } from './runtime.ts'
 
+/**
+ * Register one native DSH tool per shared-catalog entry.
+ *
+ * Every published tool is registered; whether it is exposed to a session is
+ * decided at call time by `runtime.canExpose`, which applies the configuration
+ * gate, the project shape and the host capability check. Registration therefore
+ * never encodes the catalog — a tool added upstream is registered by this loop
+ * with no change here.
+ */
 export function registerNativeCwtoolsTools(ctx: Context, config: Config, runtime: CwtoolsRuntimePool): () => void {
   const disposers: Array<() => void> = []
-  const schemas = listMcpToolSchemas({ includeWrites: true })
-  for (const schema of schemas) {
-    if (!CWTOOLS_FIRST_RELEASE_TOOL_NAMES.includes(schema.name)) continue
-    if (isCwtoolsReadToolName(schema.name) && !isReadToolEnabled(config, schema.name)) continue
-    if (schema.name === 'write_localisation' && !isWriteLocalisationEnabled(config)) continue
-    const definition = createNativeDefinition(ctx, config, runtime, schema)
+  for (const entry of CWTOOLS_CATALOG) {
+    // Reads are on by default; every write needs its name in the allowlist.
+    if (isCwtoolsWriteToolName(entry.name) ? !isWriteToolEnabled(config, entry.name) : !isReadToolEnabled(config, entry.name)) {
+      continue
+    }
+    const definition = createNativeDefinition(ctx, config, runtime, entry)
     disposers.push(ctx.tools.register(definition, {
       when: async ({ agent, signal }) => {
         const workspaceRoot = await ctx.workingDirectory.ensure(agent, signal)
-        return runtime.canExpose(schema.name, workspaceRoot)
+        return runtime.canExposeWithHost(entry.name, workspaceRoot, signal)
       },
     }))
   }
