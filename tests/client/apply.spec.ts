@@ -21,8 +21,9 @@ interface Recorded { key: string; options: Record<string, unknown>; component: u
  */
 function bench() {
   const recorded: Recorded[] = []
-  const declared = new Set<string>(['settings.section', 'settings.section.icon'])
-  const effects: { label: string; dispose: () => void }[] = []
+  const declared = new Set<string>(['settings.section', 'settings.section.icon', 'sidebar.right.pane.tab'])
+  const effects: { label: string; dispose: () => void | Promise<void> }[] = []
+  const pending: Promise<unknown>[] = []
   const dictionaries: { ns: string; dictionary: Record<string, unknown> }[] = []
   let served = true
   let registration: (() => void) | undefined
@@ -72,54 +73,75 @@ function bench() {
       return () => { dictionaries.splice(dictionaries.indexOf(entry), 1) }
     },
   }
+  const workbenchRemote = { snapshot: vi.fn(), execute: vi.fn() }
+  const tabTypes: Record<string, unknown>[] = []
+  const current = { getSnapshot: () => ({ key: 'session-test', hooks: {}, keyedHooks: {}, props: {} }), subscribe: () => () => {} }
   const ctx = {
     configForms,
     slots,
     locale,
-    effect: (run: () => (() => void) | undefined, label?: string) => {
-      const dispose = run() ?? (() => {})
-      effects.push({ label: label ?? '', dispose })
-      return dispose
+    remote: { $mount: vi.fn(async () => async () => {}) },
+    uiSession: { adapter: { current } },
+    sidebarRightTabs: { register: (options: Record<string, unknown>) => { tabTypes.push(options); return () => { const index=tabTypes.indexOf(options); if(index>=0)tabTypes.splice(index,1) } } },
+    get: (key: string) => key === 'remote.cwtoolsWorkbench' ? workbenchRemote : undefined,
+    effect: (run: () => (() => void | Promise<void>) | undefined | Promise<(() => void | Promise<void>) | undefined>, label?: string) => {
+      let dispose: () => void | Promise<void> = () => {}
+      const result = run()
+      if (result instanceof Promise) pending.push(result.then(value => { dispose = value ?? (() => {}) }))
+      else dispose = result ?? (() => {})
+      const tracked = () => dispose()
+      effects.push({ label: label ?? '', dispose: tracked })
+      return tracked
     },
   }
   return {
-    ctx, recorded, dictionaries, form,
+    ctx, recorded, dictionaries, form, tabTypes,
     /** Serve or withdraw the Host entry, as the describe mirror would. */
     setServed: (next: boolean) => { served = next; for (const sync of watchers) sync() },
+    settled: async () => { await Promise.all(pending) },
     /** Run every recorded effect teardown. */
-    teardown: () => { for (const effect of [...effects].reverse()) effect.dispose() },
+    teardown: async () => { await Promise.all(pending); for (const effect of [...effects].reverse()) await effect.dispose() },
   }
 }
 
-describe('CWTools client entrypoint', () => {
-  it('exports nothing at runtime beyond what cordis loading needs', () => {
+async function start() {
+  const host = bench()
+  apply(host.ctx as never)
+  await host.settled()
+  return host
+}
+
+describe('CWTools client entrypoint', async () => {
+  it('exports nothing at runtime beyond what cordis loading needs', async () => {
     expect(Object.keys(client).sort()).toEqual(['apply', 'inject'])
     expect(typeof client.apply).toBe('function')
-    expect(client.inject).toEqual(['slots', 'locale', 'configForms'])
+    expect(client.inject).toEqual(['slots', 'locale', 'configForms', 'remote', 'sidebarRightTabs'])
   })
 })
 
-describe('CWTools client apply', () => {
-  it('declares only the services it uses', () => {
-    expect(inject).toEqual(['slots', 'locale', 'configForms'])
+describe('CWTools client apply', async () => {
+  it('declares only the services it uses', async () => {
+    expect(inject).toEqual(['slots', 'locale', 'configForms', 'remote', 'sidebarRightTabs'])
   })
 
-  it('registers the dictionary for its own namespace', () => {
-    const host = bench()
-    apply(host.ctx as never)
-    expect(host.dictionaries).toHaveLength(1)
-    expect(host.dictionaries[0]?.ns).toBe(NS)
-    expect(Object.keys(host.dictionaries[0]?.dictionary ?? {}).sort()).toEqual(['en', 'zh'])
+  it('registers the dictionary for its own namespace', async () => {
+    const host = await start()
+    expect(host.dictionaries).toHaveLength(2)
+    const settings = host.dictionaries.find(entry => entry.ns === NS)
+    expect(settings).toBeDefined()
+    expect(Object.keys(settings?.dictionary ?? {}).sort()).toEqual(['en', 'zh'])
+    expect(host.dictionaries.some(entry => entry.ns === 'workbench.cwtools')).toBe(true)
   })
 
-  it('registers the section and a matching navigation icon while the Host serves the entry', () => {
-    const host = bench()
-    apply(host.ctx as never)
-    expect(host.recorded.map(entry => entry.key).sort()).toEqual(['settings.section', 'settings.section.icon'])
+  it('registers the section and a matching navigation icon while the Host serves the entry', async () => {
+    const host = await start()
+    expect(host.recorded.map(entry => entry.key).sort()).toEqual(['settings.section', 'settings.section.icon', 'sidebar.right.pane.tab'].sort())
     const section = host.recorded.find(entry => entry.key === 'settings.section')
     const icon = host.recorded.find(entry => entry.key === 'settings.section.icon')
     // The nav row and its icon are addressed by one shared id, and the
     // section's copy comes from the namespace this plugin registered.
+    expect(host.tabTypes[0]).toMatchObject({ id: 'dsh-cwtools', kind: 'cwtools-workbench' })
+    expect(host.tabTypes[0]?.guide).toHaveLength(1)
     expect(section?.options.id).toBe('cwtools')
     expect(icon?.options.id).toBe(section?.options.id)
     expect(section?.options.locale).toBe(host.dictionaries[0]?.ns)
@@ -129,37 +151,33 @@ describe('CWTools client apply', () => {
     expect((section?.options.label as () => string)()).toBe(en.nav)
   })
 
-  it('binds the section face to the staged controller', () => {
-    const host = bench()
-    apply(host.ctx as never)
+  it('binds the section face to the staged controller', async () => {
+    const host = await start()
     const section = host.recorded.find(entry => entry.key === 'settings.section')
     const face = (section?.options.inject as () => Record<string, unknown>)()
     expect(Object.keys(face).sort()).toEqual(['discard', 'edit', 'hooks', 'resetField', 'save', 'toggle'])
     expect(face.hooks).toHaveProperty('cwtoolsSection')
   })
 
-  it('leaves no navigation row behind once the Host stops serving the entry', () => {
-    const host = bench()
-    apply(host.ctx as never)
-    expect(host.recorded).toHaveLength(2)
+  it('leaves no navigation row behind once the Host stops serving the entry', async () => {
+    const host = await start()
+    expect(host.recorded).toHaveLength(3)
     host.setServed(false)
-    expect(host.recorded).toHaveLength(0)
+    expect(host.recorded.map(entry => entry.key)).toEqual(['sidebar.right.pane.tab'])
     host.setServed(true)
-    expect(host.recorded).toHaveLength(2)
+    expect(host.recorded).toHaveLength(3)
   })
 
-  it('releases the section, its icon, and the form subscription on teardown', () => {
-    const host = bench()
-    apply(host.ctx as never)
+  it('releases the section, its icon, and the form subscription on teardown', async () => {
+    const host = await start()
     expect(host.form.listenerCount).toBeGreaterThan(0)
-    host.teardown()
+    await host.teardown()
     expect(host.form.listenerCount).toBe(0)
     expect(host.recorded).toHaveLength(0)
   })
 
-  it('offers exactly the tools the shared catalog publishes', () => {
-    const host = bench()
-    apply(host.ctx as never)
+  it('offers exactly the tools the shared catalog publishes', async () => {
+    const host = await start()
     const section = host.recorded.find(entry => entry.key === 'settings.section')
     const face = (section?.options.inject as () => { hooks: { cwtoolsSection: { getSnapshot(): { fields: Record<string, unknown> } } } })()
     const fields = Object.keys(face.hooks.cwtoolsSection.getSnapshot().fields)
@@ -168,6 +186,6 @@ describe('CWTools client apply', () => {
     expect(offered).toContain('get_ide_context')
     // The only write control on the page is the one the frame always shows: a
     // write that is not allowlisted is off, never absent-but-on.
-    expect(fields.filter(field => field.startsWith('writeTools.'))).toEqual(['writeTools.write_localisation'])
+    expect(fields.filter(field => field.startsWith('writeTools.')).sort()).toEqual(['writeTools.gui_draft', 'writeTools.ship_design_draft', 'writeTools.static_galaxy_draft', 'writeTools.write_localisation'])
   })
 })

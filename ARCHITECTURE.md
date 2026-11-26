@@ -9,6 +9,8 @@
 
 `dsh-cwtools` depends on `cwtools-shared` for generated schemas, tool metadata, dispatch, readiness/cache annotations and targeting weights, and on `cwtools-node` for project detection, Node host services, the standalone LSP process and the native active-host HTTP client. It has no MCP SDK dependency and never calls the extension's MCP `/rpc` endpoint.
 
+`CwtoolsWorkbenchService` is a Session-confined Typert Remote facade over `CwtoolsRuntimePool`. The Host derives the workspace from the wire Session and SandboxPolicy; browser paths are never authoritative. `snapshot` aggregates IDE context and diagnostics, `read` performs bounded realpath-contained editor document reads, `execute` admits catalogued read-only tools only, and `write` is restricted to named domain editors whose existing runtime allowlist must independently grant the call. `CwtoolsWorkbenchCore` keeps business logic testable without a decorator transform. Shared `gui_draft`, `ship_design_draft` and `static_galaxy_draft` mutations reuse the same candidate transaction as domain writes and require independent explicit grants; no browser-side text write path exists. `gui` returns bounded sprite-enriched documents; `event` builds a bounded cross-file graph from `get_semantic_catalog`; `ship` returns shared catalog/view/stats/sprites through a four-entry content-hash cache, and `shipAsset` lazily resolves one model node's mesh/attachment graph. `asset` resolves workspace files first and only then the Host-configured/detected vanilla root, enforcing realpath containment and byte limits at both layers. React lazy component boundaries are inlined into one `client.js` with `codeSplitting: false`: the DSH loader does not materialize emitted relative chunks. The build rejects every relative `require`/`import` request as well as Node builtins. The Client mounts explicit descriptors and registers `cwtools-workbench` through `sidebarRightTabs` plus the Session-scoped right pane slot. DSH owns guide entry, tab chrome, resizing, fullscreen and per-Session layout persistence; CWTools owns only the pane content. Its preview model is used only when explicitly supplied by a view/test, never as a live Host fallback.
+
 `src/index.ts` owns one Cordis effect. It registers the CWTools system-prompt section, creates one `CwtoolsRuntimePool`, and disposes registrations and all runtimes together.
 
 ### Tool admission and execution
@@ -25,7 +27,7 @@ Before creating a standalone process, the pool resolves a healthy active host fo
 
 An available `NativeBridgeLspHost` is injected into the same Node host services, so filesystem, indexing, rules, diagnostics, readiness, write policy and revalidation stay shared while no child process is created. Native traffic uses only bearer-authenticated `/cwtools/healthz` and `/cwtools/rpc`, not MCP methods or the MCP `/rpc` endpoint. Existing runtime entries do not hot-migrate; disabling `preferActiveBackend` skips discovery.
 
-A standalone backend starts on the first LSP-dependent call with `startupTimeoutMs`. Immediately after `initialize`, the Node host invokes `cwtools.ai.getHostCapabilities` before `initialized` or `workspace/didChangeConfiguration`. It validates protocol version, assembly-independent release-manifest version and the 29 commands required by the shared dispatcher. An incompatible standalone backend is disposed and returns `backend_incompatible`.
+A standalone backend starts on the first LSP-dependent call with `startupTimeoutMs`. Immediately after `initialize`, the Node host invokes `cwtools.ai.getHostCapabilities` before `initialized` or `workspace/didChangeConfiguration`. It validates protocol version, assembly-independent release-manifest version and the 30 commands required by the shared dispatcher. An incompatible standalone backend is disposed and returns `backend_incompatible`.
 
 `requestTimeoutMs` bounds subsequent requests. AbortSignal is linked to a vscode-jsonrpc `CancellationTokenSource`, so abort/deadline sends a real `$/cancelRequest`. Startup owns partial process cleanup even without an explicit caller dispose.
 
@@ -48,6 +50,8 @@ The runtime Client export surface contains only `apply` and `inject`. Components
 
 `dsh-cwtools` 依赖 `cwtools-shared` 提供生成 schema、工具元数据、分派、readiness/cache 标注和索敌权重，依赖 `cwtools-node` 提供项目识别、Node 宿主服务、独立 LSP 进程和原生活跃宿主 HTTP 客户端。它没有 MCP SDK 依赖，也绝不调用扩展的 MCP `/rpc` 端点。
 
+`CwtoolsWorkbenchService` 是 `CwtoolsRuntimePool` 上按 Session 隔离的 Typert Remote 外观。Host 根据线上 Session 与 SandboxPolicy 推导工作区，浏览器路径不是授权依据。`snapshot` 聚合 IDE 上下文与诊断，`read` 执行有字节上限和 realpath 包含检查的编辑器文档读取，`execute` 只接受目录中的只读工具，`write` 仅接受指定领域编辑器且现有运行时白名单必须再次独立授权。`CwtoolsWorkbenchCore` 将业务逻辑与装饰器转换解耦以便测试。共享 `gui_draft`、`ship_design_draft` 与 `static_galaxy_draft` 复用同一候选事务并分别要求独立显式授权；浏览器侧不存在文本直写路径。`gui` 返回有界 sprite 增强文档；`event` 通过 `get_semantic_catalog` 构建有界跨文件图；`ship` 以四项内容哈希缓存返回共享 catalog/view/stats/sprites，`shipAsset` 按模型节点懒加载 mesh/附件图。`asset` 优先解析工作区，仅在文件不存在时回退到 Host 配置或自动识别的 vanilla 根，两层都执行 realpath 包含和字节上限检查。React lazy 组件边界通过 `codeSplitting: false` 内联到单一 `client.js`：DSH loader 不会物化额外相对 chunk。构建同时拒绝任何相对 `require`/`import` 请求和 Node builtin。Client 挂载显式描述符，通过 `sidebarRightTabs` 与 Session 级右侧 pane slot 注册 `cwtools-workbench`。DSH 拥有 guide 入口、Tab 外观、宽度调整、全屏和每会话布局持久化，CWTools 只拥有面板内容。预览模型只在视图/测试显式传入时使用，绝不作为实时 Host 失败的回退。
+
 `src/index.ts` 拥有一个 Cordis effect，注册 CWTools 系统提示词区段，创建一个 `CwtoolsRuntimePool`，并统一释放注册项和所有运行时。
 
 ### 工具准入与执行
@@ -64,7 +68,7 @@ The runtime Client export surface contains only `apply` and `inject`. Components
 
 可用宿主以 `NativeBridgeLspHost` 注入同一套 Node Host Services，因此文件系统、索引、规则、诊断、readiness、写策略和复验仍然共用，但不创建子进程。原生流量只使用 bearer 认证的 `/cwtools/healthz` 与 `/cwtools/rpc`，不使用 MCP 方法或 MCP `/rpc`。已创建的运行时不热迁移；关闭 `preferActiveBackend` 会完全跳过发现。
 
-独立后端在首个依赖 LSP 的调用中以 `startupTimeoutMs` 启动。Node 宿主在 `initialize` 后立即调用 `cwtools.ai.getHostCapabilities`，早于 `initialized` 和 `workspace/didChangeConfiguration`，校验协议版本、release 清单版本和共享分派需要的 29 条命令。不兼容独立后端会被释放并返回 `backend_incompatible`。
+独立后端在首个依赖 LSP 的调用中以 `startupTimeoutMs` 启动。Node 宿主在 `initialize` 后立即调用 `cwtools.ai.getHostCapabilities`，早于 `initialized` 和 `workspace/didChangeConfiguration`，校验协议版本、release 清单版本和共享分派需要的 30 条命令。不兼容独立后端会被释放并返回 `backend_incompatible`。
 
 后续请求使用 `requestTimeoutMs`。AbortSignal 连接 vscode-jsonrpc 的 `CancellationTokenSource`，所以 abort/deadline 会发送真实的 `$/cancelRequest`。即使调用方没有显式 dispose，启动过程也负责清理部分创建的子进程。
 

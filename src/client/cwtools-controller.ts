@@ -113,6 +113,9 @@ const DEFAULT_OFF_FIELDS: readonly CwtoolsFieldRef[] = [
   { field: 'backend.forceStart', block: 'backend' },
   { field: 'backend.debug', block: 'backend' },
   { field: 'writeTools.write_localisation', block: 'writeTools' },
+  { field: 'writeTools.gui_draft', block: 'writeTools' },
+  { field: 'writeTools.ship_design_draft', block: 'writeTools' },
+  { field: 'writeTools.static_galaxy_draft', block: 'writeTools' },
 ]
 
 /** Switches whose absent value means on: the master switch and every read grant. */

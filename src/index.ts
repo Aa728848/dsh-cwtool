@@ -5,6 +5,7 @@ import { snapshotConfig, type CwtoolsLiveConfig } from './config.ts'
 import { registerNativeCwtoolsTools } from './host/nativeTools.ts'
 import { CWTOOLS_SYSTEM_PROMPT } from './host/prompt.ts'
 import { CwtoolsRuntimePool } from './host/runtime.ts'
+import { CwtoolsWorkbenchService, type CwtoolsWorkbenchRuntimeRef } from './host/workbenchService.ts'
 
 export { Config } from './config.ts'
 export const name = 'cwtools'
@@ -18,11 +19,14 @@ export const inject = ['tools', 'systemPrompt', 'workingDirectory']
  */
 export function apply(ctx: Context, config: CwtoolsLiveConfig): void {
   let dispose: (() => void) | undefined
+  const workbenchRuntime: CwtoolsWorkbenchRuntimeRef = { current: undefined }
+  ctx.plugin(CwtoolsWorkbenchService, workbenchRuntime)
 
   const mount = (): void => {
     const values = snapshotConfig(config)
     if (!values.enabled) return
     const runtime = new CwtoolsRuntimePool(values)
+    workbenchRuntime.current = runtime
     const removePrompt = ctx.systemPrompt.section({
       name: 'tool:cwtools',
       order: 2210,
@@ -37,6 +41,7 @@ export function apply(ctx: Context, config: CwtoolsLiveConfig): void {
   }
 
   const unmount = (): void => {
+    workbenchRuntime.current = undefined
     const current = dispose
     dispose = undefined
     current?.()

@@ -28,21 +28,26 @@
     "locale/*.json",
     "icon.svg",
     "README.md",
+    "docs/visual-editors-and-particles.md",
     "LICENSE"
   ],
   "dsh": {
-    "bundle": { "patch": "./cordis.patch.yml" },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
     "client": {
       "platform": "web",
       "inject": [
         "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-api-gateway",
+        "@deepseek-ai/dsh-client-ui-sidebar-right",
         "@deepseek-ai/dsh-client-ui-settings",
         "@deepseek-ai/dsh-client-ui-settings-general"
       ]
     }
   },
   "scripts": {
-    "build": "pnpm run typecheck && pnpm run build:types && tsdown && pnpm run check:client-bundle",
+    "build": "pnpm run typecheck && node scripts/prune-stale-build.mjs && pnpm run build:types && tsdown && pnpm run check:client-bundle",
     "check:client-bundle": "node scripts/check-client-bundle.mjs",
     "build:types": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -59,29 +64,40 @@
   "dependencies": {
     "@deepseek-ai/schemastery": "^3.19.0",
     "cwtools-node": "0.3.1",
-    "cwtools-shared": "0.5.0"
+    "cwtools-shared": "0.5.0",
+    "three": "^0.184.0",
+    "zod": "^4.6.6"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.1.0",
+    "@deepseek-ai/dsh-sandbox-policy": ">=0.2.2-rc.1 <0.3.0",
+    "@deepseek-ai/dsh-session": ">=0.2.2-rc.1 <0.3.0",
     "@deepseek-ai/dsh-system-prompt": ">=0.2.2-rc.1 <0.3.0",
     "@deepseek-ai/dsh-tools": ">=0.2.2-rc.1 <0.3.0",
+    "@deepseek-ai/dsh-typert-protocol": ">=0.2.2-rc.1 <0.3.0",
     "@deepseek-ai/dsh-working-directory": ">=0.2.2-rc.1 <0.3.0"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "^4.1.0",
     "@deepseek-ai/cordis-plugin-loader": "^1.1.0",
+    "@deepseek-ai/dsh-api-gateway": ">=0.2.2-rc.1 <0.3.0",
     "@deepseek-ai/dsh-api-remotes": ">=0.2.2-rc.1 <0.3.0",
     "@deepseek-ai/dsh-client-locale": ">=0.2.2-rc.1 <0.3.0",
     "@deepseek-ai/dsh-client-store": ">=0.2.2-rc.1 <0.3.0",
     "@deepseek-ai/dsh-client-ui-primitives": ">=0.2.2-rc.1 <0.3.0",
     "@deepseek-ai/dsh-client-ui-renderer": ">=0.2.2-rc.1 <0.3.0",
+    "@deepseek-ai/dsh-client-ui-session": ">=0.2.2-rc.1 <0.3.0",
     "@deepseek-ai/dsh-client-ui-settings": ">=0.2.2-rc.1 <0.3.0",
     "@deepseek-ai/dsh-client-ui-settings-general": ">=0.2.2-rc.1 <0.3.0",
+    "@deepseek-ai/dsh-client-ui-sidebar-right": ">=0.2.2-rc.1 <0.3.0",
     "@deepseek-ai/dsh-client-ui-slots": ">=0.2.2-rc.1 <0.3.0",
+    "@deepseek-ai/dsh-sandbox-policy": ">=0.2.2-rc.1 <0.3.0",
+    "@deepseek-ai/dsh-session": ">=0.2.2-rc.1 <0.3.0",
     "@deepseek-ai/dsh-system-prompt": ">=0.2.2-rc.1 <0.3.0",
     "@deepseek-ai/dsh-tools": ">=0.2.2-rc.1 <0.3.0",
-    "@deepseek-ai/dsh-util-code-language": "0.1.7-rc.2",
-    "@deepseek-ai/dsh-util-workspace-path": "0.1.2-alpha.2",
+    "@deepseek-ai/dsh-typert-protocol": ">=0.2.2-rc.1 <0.3.0",
+    "@deepseek-ai/dsh-util-code-language": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-util-workspace-path": "0.2.2-rc.1",
     "@deepseek-ai/dsh-working-directory": ">=0.2.2-rc.1 <0.3.0",
     "@shikijs/langs": "^4.6.0",
     "@testing-library/react": "^16.3.0",
@@ -89,6 +105,7 @@
     "@types/node": "^24.0.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
+    "@types/three": "^0.184.1",
     "anser": "^2.3.5",
     "clsx": "^2.1.1",
     "diff": "^9.0.0",

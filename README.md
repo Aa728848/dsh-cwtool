@@ -7,6 +7,10 @@
 
 `dsh-cwtools` is a standalone DeepSeek Harness bundle that exposes CWTools as native DSH tools and adds a CWTools section to DSH Settings. It does not use MCP or require an MCP transport. A running VS Code extension is optional: a healthy active host is reused by default, otherwise a standalone backend is started.
 
+The right-sidebar **CWTools Workbench** is a native DSH Session Tab with guide entry, resizing, fullscreen and per-Session persistence. It follows the selected Agent Session and reads its live IDE context and diagnostics through a Session-confined Remote service. Its read-only `execute` facade uses the same runtime pool and configuration gates as Agent tools; it never accepts a browser-supplied workspace path. Native Tech Tree, Event Chain, Static Galaxy, Solar orbital and Entity structure views parse real workspace documents through `cwtools-shared/editors`; document reads enforce extensions, byte limits and realpath containment. Localisation queries and edits use the shared index and mandatory `write_localisation` tool through a separate allowlisted write facade. With `gui_draft` explicitly enabled, the Workbench and Agent share AST-identified GUI position/size candidates with validate/commit/discard, overlay diagnostics, drift checks and rollback. The Host resolves workspace and detected-vanilla GFX sprites and decodes DDS/TGA to bounded PNG captures. Event Chain uses the live semantic catalog and bounded cross-file graph construction. One DSH-materialized client module provides Entity/Particle WebGL scenes plus full Ship catalog/stats/icons and resolved mesh/attachment/texture scenes; Ship resources load lazily by model node through a content-hash-invalidated Host cache. `ship_design_draft` and `static_galaxy_draft` independently authorize section/component, numeric or dragged coordinate, and explicit-hyperlane candidates. The design preview is isolated from live data and has all write controls disabled.
+
+See [the visual-editor and particle guide](docs/visual-editors-and-particles.md) for editor entry points, safe three-dimensional workflows, vanilla particle reverse lookup, and the boundary between source evidence and approximate runtime previews.
+
 ### Features
 
 - Every read-only tool the installed `cwtools-shared` publishes, grouped for project knowledge, rules and scopes, navigation, diagnostics, localisation, semantic analysis, Shader queries, and IDE bridge calls.
@@ -57,6 +61,10 @@ See `ARCHITECTURE.md` for data flow and `CONTRIBUTING.md` for verification.
 ## 中文
 
 `dsh-cwtools` 是独立的 DeepSeek Harness 组合包，把 CWTools 作为 DSH 原生工具接入，并在 DSH 设置中增加 CWTools 分区。它不使用 MCP，也不要求 MCP transport。正在运行的 VS Code 扩展只是可选优化：默认复用健康的活跃宿主，否则启动独立后端。
+
+右侧栏 **CWTools 工作台**是 DSH 原生 Session Tab，支持 guide 入口、宽度调整、全屏和每会话布局持久化。它跟随当前 Agent Session，通过 Session 限定的 Remote 服务读取真实 IDE 上下文与诊断。只读 `execute` 外观与 Agent 工具共用运行时池和配置门禁；浏览器不能传入任意工作区路径。原生科技树、事件链、静态银河、恒星系轨道和实体结构视图通过 `cwtools-shared/editors` 解析真实工作区文档，读取实施扩展名、字节上限和 realpath 包含检查。本地化查询与编辑使用共享索引和强制的 `write_localisation` 工具，经独立白名单写接口执行。显式启用 `gui_draft` 后，工作台与 Agent 共享按 AST 元素定位的 GUI position/size 候选，支持 validate/commit/discard、覆盖层诊断、漂移检查与回滚。Host 解析工作区及自动识别 vanilla 的 GFX sprite，并把 DDS/TGA 解码为有界 PNG 截图纹理。事件链使用实时语义目录构建有界跨文件关系图。单一 DSH 可物化 client 模块提供 Entity/Particle WebGL 场景，以及完整舰船 catalog/stats/icons 和已解析 mesh/附件/纹理场景；舰船资源按模型节点懒加载，Host 缓存按文档内容哈希失效。`ship_design_draft` 与 `static_galaxy_draft` 分别独立授权 section/component、数字或拖拽坐标和显式航道候选。设计预览与实时数据完全隔离，所有预览写操作均禁用。
+
+三维编辑器入口、安全操作、原版粒子反查链以及源码证据与运行时近似的边界见[可视化编辑器与粒子指南](docs/visual-editors-and-particles.md)。
 
 ### 功能
 

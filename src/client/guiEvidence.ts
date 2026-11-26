@@ -1,0 +1,9 @@
+export interface GuiSvgCapture { dataUrl:string;diffRatio?:string }
+async function rasterize(svg:SVGSVGElement):Promise<HTMLCanvasElement>{
+  const source=new XMLSerializer().serializeToString(svg);const url=URL.createObjectURL(new Blob([source],{type:'image/svg+xml;charset=utf-8'}));
+  try{const image=new Image();await new Promise<void>((resolve,reject)=>{image.onload=()=>{resolve()};image.onerror=()=>{reject(new Error('GUI SVG rasterization failed.'))};image.src=url});const canvas=document.createElement('canvas');canvas.width=960;canvas.height=540;const context=canvas.getContext('2d');if(!context)throw new Error('2D canvas is unavailable.');context.fillStyle='#10171f';context.fillRect(0,0,960,540);context.drawImage(image,0,0,960,540);return canvas}finally{URL.revokeObjectURL(url)}
+}
+export async function captureGuiSvg(svg:SVGSVGElement,baseline?:string):Promise<GuiSvgCapture>{
+  const canvas=await rasterize(svg);const dataUrl=canvas.toDataURL('image/png');if(!baseline)return{dataUrl};
+  const previous=new Image();await new Promise<void>((resolve,reject)=>{previous.onload=()=>{resolve()};previous.onerror=()=>{reject(new Error('GUI baseline decode failed.'))};previous.src=baseline});const before=document.createElement('canvas');before.width=960;before.height=540;const context=before.getContext('2d');if(!context)throw new Error('2D canvas is unavailable.');context.drawImage(previous,0,0,960,540);const a=context.getImageData(0,0,960,540).data;const b=canvas.getContext('2d')!.getImageData(0,0,960,540).data;let changed=0;for(let i=0;i<a.length;i+=4)if(Math.abs(a[i]!-b[i]!)>8||Math.abs(a[i+1]!-b[i+1]!)>8||Math.abs(a[i+2]!-b[i+2]!)>8)changed++;return{dataUrl,diffRatio:(changed/(960*540)*100).toFixed(2)+'%'}
+}

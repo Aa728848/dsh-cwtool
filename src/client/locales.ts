@@ -26,7 +26,7 @@ export type CwtoolsLocaleKey =
   | 'idleShutdownMs' | 'idleShutdownMsHint'
   | 'maxWorkspaceRuntimes' | 'maxWorkspaceRuntimesHint'
   | 'maxResultChars' | 'maxResultCharsHint'
-  | 'writeLocalisation' | 'writeLocalisationHint' | 'writePolicyNote'
+  | 'writeLocalisation' | 'writeLocalisationHint' | 'writeGuiDraft' | 'writeGuiDraftHint' | 'writeShipDraft' | 'writeShipDraftHint' | 'writeGalaxyDraft' | 'writeGalaxyDraftHint' | 'writePolicyNote'
   | 'groupProject' | 'groupLocalisation' | 'groupSemantic'
   | 'groupNavigation' | 'groupDiagnostics' | 'groupShader' | 'groupIde'
   | 'groupDisabledNote' | 'readAccessIntro'
@@ -93,6 +93,12 @@ export const en: Record<CwtoolsLocaleKey, string> = {
   maxResultChars: 'Result preview limit',
   maxResultCharsHint: 'Characters of each tool result shown to the model; stored values stay complete, from 1000 to 200000.',
   writeLocalisation: 'Allow write_localisation',
+  writeGuiDraft: 'Allow gui_draft',
+  writeShipDraft: 'Allow ship_design_draft',
+  writeShipDraftHint: 'Allow validated Ship Design candidates.',
+  writeGalaxyDraft: 'Allow static_galaxy_draft',
+  writeGalaxyDraftHint: 'Allow validated Static Galaxy candidates.',
+  writeGuiDraftHint: 'Enables bounded GUI candidate edits. Validation and an explicit commit are still required.',
   writeLocalisationHint: 'When off, localisation writes are refused.',
   writePolicyNote: 'This page never grants a write on its own: every write still passes the DSH tool policy of the active session.',
   groupProject: 'Project queries',
@@ -176,6 +182,12 @@ export const zh: Record<CwtoolsLocaleKey, string> = {
   maxResultChars: '结果预览上限',
   maxResultCharsHint: '展示给模型的每份工具结果字符数；存储值始终完整，1000 到 200000。',
   writeLocalisation: '允许 write_localisation',
+  writeGuiDraft: '允许 gui_draft',
+  writeShipDraft: '允许 ship_design_draft',
+  writeShipDraftHint: '允许经过验证的舰船设计候选。',
+  writeGalaxyDraft: '允许 static_galaxy_draft',
+  writeGalaxyDraftHint: '允许经过验证的静态银河候选。',
+  writeGuiDraftHint: '允许有界 GUI 候选编辑，仍须验证并显式提交。',
   writeLocalisationHint: '关闭时拒绝本地化写入。',
   writePolicyNote: '本页不会单方面授予写入：每次写入仍要通过当前会话的 DSH 工具策略。',
   groupProject: '项目查询',

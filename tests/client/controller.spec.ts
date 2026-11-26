@@ -24,11 +24,12 @@ describe('CwtoolsSettingsController defaults', () => {
     // + read groups + read tools + write + output
     // The group count follows the catalog contract, so a new group cannot be
     // added to the page and silently skipped by this assertion.
-    expect(Object.keys(current.fields)).toHaveLength(1 + 5 + 2 + 6 + 3 + CWTOOLS_READ_GROUP_ORDER.length + CWTOOLS_READ_TOOL_NAMES.length + 2)
+    expect(Object.keys(current.fields)).toHaveLength(1 + 5 + 2 + 6 + 3 + CWTOOLS_READ_GROUP_ORDER.length + CWTOOLS_READ_TOOL_NAMES.length + 5)
     for (const tool of CWTOOLS_READ_TOOL_NAMES) expect(current.tools[tool]).toBe(true)
     // No write is granted until someone stores its name in the allowlist: the
     // control exists, and its stored value is off.
     expect(current.fields['writeTools.write_localisation']?.text).toBe('false')
+    expect(current.fields['writeTools.gui_draft']?.text).toBe('false')
     expect(current.fields['backend.serverPath']?.text).toBe('')
     expect(current.fields['backend.maxWorkspaceRuntimes']?.text).toBe('2')
     expect(current.fields['output.maxResultChars']?.text).toBe('16000')

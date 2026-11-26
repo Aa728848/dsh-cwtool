@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { createNodeHostServices, detectProjectSupport } from 'cwtools-node'
+import { createNodeHostServices, detectGameInstall, detectProjectSupport } from 'cwtools-node'
 import {
   createToolCallHandler,
   getMcpToolRegistryMetadata,
@@ -58,6 +58,14 @@ export class CwtoolsRuntimePool {
     return this.entries.size
   }
 
+  /** Host-owned read roots: the Session workspace, then its configured/detected vanilla install. */
+  resourceRoots(workspaceRoot: string): readonly string[] {
+    const project = this.resolveProject(workspaceRoot)
+    const configured = optional(this.config.backend.gamePath)
+    const detected = configured ?? (project.game === 'paradox' || project.game === 'cwt' ? undefined : detectGameInstall(project.game))
+    return [...new Set([project.root, ...(detected ? [path.resolve(detected)] : [])])]
+  }
+
   canExpose(name: string, workspaceRoot: string): boolean {
     return this.exposureReason(name, workspaceRoot) === undefined
   }
@@ -105,7 +113,7 @@ export class CwtoolsRuntimePool {
     const cwtOnly = project.kind === 'cwt-only'
     const writes = this.config.writeTools[name] === true
     if (!isMcpToolAvailable(name, { includeWrites: writes, cwtOnly })) {
-      return cwtOnly ? 'Tool ' + name + ' is unavailable in a CWT-only workspace.' : 'Tool ' + name + ' is unavailable under the current write policy.'
+      return cwtOnly ? 'Tool ' + name + ' is unavailable in a CWT-only workspace.' : 'Tool ' + name + ' is unavailable in the current workspace or host capabilities.'
     }
     const gameModel = cwtoolsGameModelFor(name)
     if (gameModel !== undefined && project.game !== gameModel) {

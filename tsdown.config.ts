@@ -2,6 +2,34 @@ import { readFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { defineConfig } from 'tsdown'
 import { transform } from 'lightningcss'
+import ts from 'typescript'
+
+const TYPESCRIPT_MODULE = /^[^?]*\.[cm]?tsx?(?:\?|$)/
+const DECORATOR_SYNTAX = /^\s*@[A-Za-z_$][\w$]*/m
+
+const decoratorPlugin = {
+  name: 'dsh-cwtools-decorators',
+  transform: {
+    filter: { id: TYPESCRIPT_MODULE },
+    handler(code: string, id: string) {
+      if (!TYPESCRIPT_MODULE.test(id) || !DECORATOR_SYNTAX.test(code)) return
+      const file = id.replace(/\?.*$/su, '')
+      const result = ts.transpileModule(code, {
+        fileName: file,
+        compilerOptions: {
+          target: ts.ScriptTarget.ES2022,
+          module: ts.ModuleKind.ESNext,
+          ...(file.endsWith('x') ? { jsx: ts.JsxEmit.ReactJSX } : {}),
+          sourceMap: true,
+        },
+      })
+      return {
+        code: result.outputText.replace(/\n?\/\/# sourceMappingURL=.*$/u, '\n'),
+        map: result.sourceMapText,
+      }
+    },
+  },
+}
 
 const hostExternal = [
   /^@deepseek-ai\//,
@@ -35,6 +63,7 @@ export default defineConfig([
     target: 'es2022',
     fixedExtension: false,
     deps: { neverBundle: isHostExternal },
+    plugins: [decoratorPlugin],
     dts: false,
     clean: false,
   },
@@ -95,6 +124,7 @@ export default defineConfig([
       },
     }],
     outputOptions: {
+      codeSplitting: false,
       entryFileNames: 'client.js',
       banner: 'window.__ModuleLoader__.load({ id: "dsh-cwtools", factory: (require) => {',
       footer: 'return module.exports; } });',

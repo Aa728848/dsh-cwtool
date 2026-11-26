@@ -76,6 +76,9 @@ const FIELD_COPY: Record<string, { label: CwtoolsLocaleKey; hint: CwtoolsLocaleK
   'diagnostics.ignoreCodes': { label: 'ignoreCodes', hint: 'ignoreCodesHint' },
   'diagnostics.ignoreFiles': { label: 'ignoreFiles', hint: 'ignoreFilesHint' },
   'writeTools.write_localisation': { label: 'writeLocalisation', hint: 'writeLocalisationHint' },
+  'writeTools.gui_draft': { label: 'writeGuiDraft', hint: 'writeGuiDraftHint' },
+  'writeTools.ship_design_draft': { label: 'writeShipDraft', hint: 'writeShipDraftHint' },
+  'writeTools.static_galaxy_draft': { label: 'writeGalaxyDraft', hint: 'writeGalaxyDraftHint' },
   'output.maxResultChars': { label: 'maxResultChars', hint: 'maxResultCharsHint' },
 }
 
@@ -313,7 +316,7 @@ export function CwtoolsSection(props: CwtoolsSectionProps) {
           {tab === 'output'
             ? <>
               <h3 className={css.blockHead}>{t('sectionWriteAccess')}</h3>
-              <div className={css.rows}>{switchRow('writeTools.write_localisation', locked)}</div>
+              <div className={css.rows}>{switchRow('writeTools.write_localisation', locked)}{switchRow('writeTools.gui_draft', locked)}{switchRow('writeTools.ship_design_draft', locked)}{switchRow('writeTools.static_galaxy_draft', locked)}</div>
               <p className={css.note}>{t('writePolicyNote')}</p>
               <h3 className={css.blockHead}>{t('sectionOutput')}</h3>
               <div className={css.cards}>{cardOf('output.maxResultChars', true)}</div>
