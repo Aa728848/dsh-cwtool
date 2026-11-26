@@ -1,4 +1,8 @@
-import { getMcpToolRegistryMetadata, isMcpWriteToolName, listMcpToolSchemas } from 'cwtools-shared'
+// The browser-safe `cwtools-shared/catalog` entry, never the package root: this
+// module is bundled into the browser client, and the root re-exports Host
+// modules that require Node builtins (`fs`, `path`, `crypto`, ...) at load.
+// `scripts/check-client-bundle.mjs` fails the build if a builtin leaks back in.
+import { getMcpToolRegistryMetadata, isMcpWriteToolName, listMcpToolSchemas } from 'cwtools-shared/catalog'
 
 /**
  * How the settings page groups the shared tool catalog.

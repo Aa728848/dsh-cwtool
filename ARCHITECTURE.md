@@ -39,7 +39,7 @@ Successful calls return a validated, lossless-JSON envelope: `ok`, `status`, `so
 
 The Client registers `settings.section` and its icon through `slots` while `configForms.whileServed(['cwtools'])` is active. `FlatSectionScope` expands the nested Host value/base/user snapshots into dotted field paths, then translates save operations back to nested `SettingsPathOpView` paths. One save is one revision-fenced `mutate` call. Group switches do not rewrite individual grants. Refusals preserve drafts and expose Host-accepted values; revision conflicts are distinguished from other failures.
 
-The runtime Client export surface contains only `apply` and `inject`. Components, controller and pure helpers are tested through direct internal imports. Browser code uses typed locales, shared primitives, DSW tokens and CSS Modules without importing Host code or Node builtins.
+The runtime Client export surface contains only `apply` and `inject`. Components, controller and pure helpers are tested through direct internal imports. Browser code uses typed locales, shared primitives, DSW tokens and CSS Modules without importing Host code or Node builtins. The shared `toolCatalog.ts` therefore imports the browser-safe `cwtools-shared/catalog` entry rather than the package root, and `pnpm run build` runs `scripts/check-client-bundle.mjs`, which fails if `lib/client.js` requests any Node builtin.
 
 <a id="中文"></a>
 ## 中文
@@ -78,4 +78,4 @@ The runtime Client export surface contains only `apply` and `inject`. Components
 
 Client 在 `configForms.whileServed(['cwtools'])` 有效时通过 `slots` 注册 `settings.section` 和图标。`FlatSectionScope` 把嵌套的 Host value/base/user 快照拉平成点号路径，保存时再还原为嵌套 `SettingsPathOpView` 路径。一次保存就是一次带 revision 围栏的 `mutate`。组开关不改写单工具授权。拒绝保留草稿并展示 Host 已接受值，revision 冲突与其他失败分开显示。
 
-Client 运行时只导出 `apply` 和 `inject`。组件、控制器和纯辅助函数通过内部相对导入测试。浏览器代码使用 typed locale、共享原语、DSW token 和 CSS Modules，不导入 Host 代码或 Node 内置模块。
+Client 运行时只导出 `apply` 和 `inject`。组件、控制器和纯辅助函数通过内部相对导入测试。浏览器代码使用 typed locale、共享原语、DSW token 和 CSS Modules，不导入 Host 代码或 Node 内置模块。因此共享的 `toolCatalog.ts` 从浏览器安全入口 `cwtools-shared/catalog` 导入，而不是包根；`pnpm run build` 会运行 `scripts/check-client-bundle.mjs`，`lib/client.js` 请求任何 Node 内置模块即失败。

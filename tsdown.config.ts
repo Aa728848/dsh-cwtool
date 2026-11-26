@@ -5,8 +5,8 @@ import { transform } from 'lightningcss'
 
 const hostExternal = [
   /^@deepseek-ai\//,
-  'cwtools-shared',
-  'cwtools-node',
+  /^cwtools-shared(\/|$)/,
+  /^cwtools-node(\/|$)/,
 ]
 const clientExternal = new Set([
   'react',

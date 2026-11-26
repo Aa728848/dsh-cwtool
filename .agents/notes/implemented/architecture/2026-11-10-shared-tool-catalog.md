@@ -20,11 +20,15 @@ Status: implemented
 
 **需要完整游戏模型的工具用数据表表达。** `CWTOOLS_STELLARIS_ONLY_TOOLS` 换成 `GAME_MODEL_TOOLS`/`cwtoolsGameModelFor()`，拒绝消息按表内容生成，未来需要 CK3 之类模型的工具只需加一行。
 
+**目录投影只从浏览器安全入口 `cwtools-shared/catalog` 导入。** `toolCatalog.ts` 同时被 Host 与浏览器 Client 打包，不能从包根导入：包根会 re-export `workspaceGameDetection`、`project/*`、`safety/paths`、`tools/archetype*` 等 Host 模块，它们在求值时 `require("fs"|"path"|"crypto"|"url"|"os")`；0.3.0 的 Client 构建（`alwaysBundle`）把它们整体内联进 `lib/client.js`（596 KB），DSH 客户端模块表没有 Node 内置模块，factory 在 `apply()` 之前抛错，设置分区注册不上（issue #1）。`cwtools-shared@0.5.0` 为此新增 `./catalog` 子路径导出，只含生成目录、registry 元数据和读写名表，并由上游契约测试保证其运行时导入图不触达 Node 内置模块或 Host 模块。Host 构建的 external 规则同时匹配 `cwtools-shared/*`、`cwtools-node/*` 子路径，Host 运行期引用同一份 CJS 模块实例。`build` 在 `tsdown` 之后运行 `scripts/check-client-bundle.mjs`，`lib/client.js` 中出现任何 Node 内置模块的 `require`/`import` 即失败。
+
 ## Alternatives considered
 
 - **保留名单，只是把新工具追加进去。** 解决一次，不是解决一类问题：下一次上游扩张仍要改多处，且容易漏改某一处，导致模型看得到工具、运行时却拒绝。
 - **完全信任 registry `effect` 推导分组。** `analyze_diagnostic_error` 的 effect 是 `none`，会被分进 project 组；`query_shader_*` 的 effect 是通用的 `workspace_read`，会全部挤进 semantic 组，用户便无法按「关掉整个着色器组」来收缩表面。因此保留一张小而显式的归组表。
 - **用 `effect !== 'workspace_read'` 判定只读。** `none` 只说明没有副作用声明，不保证能作为工具应答；写集合必须来自写名单与 registry 的显式写标记。
+- **直接深层导入 `cwtools-shared/dist/tools/mcpSchema.js` 与 `names.js`。** 能不等上游发版就解阻，但把下游绑在上游内部目录布局上；`cwtools-shared@0.5.0` 增加 `exports` 后这类路径已不可导入。
+- **在 Client 构建中给 Node 内置模块加 no-op 垫片或把 Host 模块标为 external。** 垫片只掩盖症状并保留约 400 KB 无用代码；external 会让 DSH 加载器去解析一个它没有的包，同样失败。
 - **在注册期就把不可用工具从注册表移除。** 需要预先启动项目检测甚至 LSP，与「注册不启动后端」的既有约束冲突；可见性继续走步骤级 `when` 与执行期复核。
 
 ## Consequences
@@ -34,3 +38,4 @@ Status: implemented
 - 测试改为与目录对照（`publishes every shared tool and nothing else`、`registers every shared read tool`），不再是 `37`/`29` 这类会随上游漂移的魔数。
 - `write_localisation` 仍保留 `isWriteLocalisationEnabled` 兼容导出，但内部改走通用的 `isWriteToolEnabled`。
 - 本地 shared/node 构建下 Host/Client 81 项测试与 build 全绿；activeBackend mock 同步验证 IDE host 注入。
+- `lib/client.js` 从 596 KB 降到约 212 KB（剩余主体是生成目录数据），不再请求任何 Node 内置模块；模拟 DSH 加载器求值 factory 时只请求 `@deepseek-ai/dsh-client-ui-primitives`、`react`、`react/jsx-runtime`。浏览器代码新增对 `cwtools-shared` 的使用时必须走 `cwtools-shared/catalog`，构建检查会兜底。
