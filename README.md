@@ -28,7 +28,7 @@ Nothing is filtered by a compiled tool list: a tool is hidden only when the shar
 
 - DSH `>=0.2.2-rc.1 <0.3.0`.
 - A matching external CWTools server built with capability protocol 1. Older servers are rejected with `backend_incompatible` instead of silently producing partial results.
-- `cwtools-shared` 0.3.0 and `cwtools-node` 0.2.0. Development installations can link those checkouts; published installations should install them before this bundle.
+- `cwtools-shared` 0.6.0 and `cwtools-node` 0.4.0. Development installations can link those checkouts; published installations should install them before this bundle.
 
 The bundle does not ship a backend. Empty `backend.serverPath` auto-discovers a standalone CWTools installation or development build. Empty `backend.activeManifestPath` auto-discovers the active-host manifest. An empty `backend.gamePath` is discovered from the local Steam libraries; empty rules and cache paths try the installed extension first, then the workspace's rule checkout, then the server default.
 
