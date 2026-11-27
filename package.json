@@ -1,6 +1,6 @@
 {
   "name": "dsh-cwtools",
-  "version": "0.3.3",
+  "version": "0.4.0",
   "description": "Native DeepSeek Harness tools and settings for CWTools Paradox modding",
   "license": "MIT",
   "type": "module",
@@ -63,8 +63,8 @@
   },
   "dependencies": {
     "@deepseek-ai/schemastery": "^3.19.0",
-    "cwtools-node": "0.4.1",
-    "cwtools-shared": "0.6.0",
+    "cwtools-node": "0.4.2",
+    "cwtools-shared": "0.7.0",
     "three": "^0.184.0",
     "zod": "^4.6.6"
   },
